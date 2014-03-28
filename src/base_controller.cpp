@@ -19,8 +19,8 @@ base_controller::base_controller( const ros::NodeHandle &_nh, const ros::NodeHan
 	joint_traj_template.joint_names.resize( 2 );
 	joint_traj_template.points.resize( 1 );
 	joint_traj_template.points[0].velocities.resize( 2 );
-	joint_traj_template.joint_names[0] = right_joint_name;
-	joint_traj_template.joint_names[1] = left_joint_name;
+	joint_traj_template.joint_names[0] = left_joint_name;
+	joint_traj_template.joint_names[1] = right_joint_name;
 }
 
 base_controller::~base_controller( )
