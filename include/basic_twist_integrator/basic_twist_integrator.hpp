@@ -32,6 +32,10 @@ private:
 	double y;
 	double th;
 
+	double x_covariance;
+	double y_covariance;
+	double yaw_covariance;
+
 	bool pub_transform;
 	std::string frame_id;
 

@@ -10,10 +10,16 @@ basic_twist_integrator::basic_twist_integrator( const ros::NodeHandle &_nh, cons
 	odom_callback( boost::bind(&basic_twist_integrator::odom_cb, this) ),
 	x( 0.0 ),
 	y( 0.0 ),
-	th( 0.0 )
+	th( 0.0 ),
+	x_covariance(20),
+	y_covariance(20),
+	yaw_covariance(50)
 {
 	nh_priv.param( "pub_transform", pub_transform, false );
 	nh_priv.param<std::string>( "frame_id", frame_id, "encoder_odom" );
+	nh_priv.param( "x_covariance", x_covariance, x_covariance);
+	nh_priv.param( "y_covariance", y_covariance, y_covariance);
+	nh_priv.param( "yaw_covariance", yaw_covariance, yaw_covariance );
 }
 
 basic_twist_integrator::~basic_twist_integrator( )
@@ -84,12 +90,12 @@ void basic_twist_integrator::twist_stamped_cb( const geometry_msgs::TwistStamped
 	odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(th);
 
 	//set covariances
-	odom.pose.covariance[0] = .1;
-	odom.pose.covariance[7] = .1;
-	odom.pose.covariance[14] = 1000000000;
-	odom.pose.covariance[21] = 1000000000;
-	odom.pose.covariance[28] = 1000000000;
-	odom.pose.covariance[35] = .1;
+	odom.pose.covariance[0] = x_covariance;
+	odom.pose.covariance[7] = y_covariance;
+	odom.pose.covariance[14] = FLT_MAX;
+	odom.pose.covariance[21] = FLT_MAX;
+	odom.pose.covariance[28] =FLT_MAX;
+	odom.pose.covariance[35] = yaw_covariance;
 
 	odom.twist.covariance[0] = .1;
 	odom.twist.covariance[7] = .1;
