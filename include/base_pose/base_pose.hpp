@@ -21,9 +21,9 @@ public:
 private:
 	ros::NodeHandle nh;
 	ros::NodeHandle nh_priv;
-	ros::Publisher pose_stamped_pub;
+	ros::Publisher odom_pub;
 	ros::Subscriber joint_state_sub;
-	const ros::SubscriberStatusCallback pose_stamped_callback;
+	const ros::SubscriberStatusCallback odom_callback;
 
 	std::string frame_id;
 	std::string left_joint_name;
@@ -32,7 +32,11 @@ private:
 	double wheel_diam;
 	double wheel_diam2;
 
-	void pose_stamped_cb( );
+	double x_covariance;
+	double y_covariance;
+	double yaw_covariance;
+
+	void odom_cb( );
 	void joint_state_cb( const sensor_msgs::JointStatePtr &msg );
 };
 }
