@@ -28,6 +28,7 @@ private:
 
 	bool pub_transform;
 	std::string frame_id;
+	std::string child_frame_id;
 	std::string left_joint_name;
 	std::string right_joint_name;
 	

@@ -16,6 +16,7 @@ base_pose::base_pose( const ros::NodeHandle &_nh, const ros::NodeHandle &_nh_pri
 	nh_priv.param( "wheel_diam", wheel_diam, 0.0750 );
 	nh_priv.param( "wheel_diam2", wheel_diam2, wheel_diam );
 	nh_priv.param<std::string>( "frame_id", frame_id, "base_link" );
+	nh_priv.param<std::string>( "child_frame_id", child_frame_id, "odom" );
 	nh_priv.param<std::string>( "left_wheel_joint", left_joint_name, "left_wheel_joint" );
 	nh_priv.param<std::string>( "right_wheel_joint", right_joint_name, "right_wheel_joint" );
 	nh_priv.param( "pub_transform", pub_transform, false );
@@ -30,7 +31,7 @@ base_pose::~base_pose( )
 
 bool base_pose::start( )
 {
-	if( !( odom_pub = nh.advertise<nav_msgs::Odometry>( "wheel_odom", 1, odom_callback, odom_callback, ros::VoidConstPtr( ), false ) ) )
+	if( !( odom_pub = nh.advertise<nav_msgs::Odometry>( "odom", 1, odom_callback, odom_callback, ros::VoidConstPtr( ), false ) ) )
 		return false;
 
 	odom_cb( );
@@ -154,7 +155,7 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
                 geometry_msgs::TransformStamped odom_trans;
                 odom_trans.header = msg->header;
                 odom_trans.header.frame_id = frame_id;
-                odom_trans.child_frame_id = msg->header.frame_id;
+                odom_trans.child_frame_id = child_frame_id;
 
                 odom_trans.transform.translation.x = odom.pose.pose.position.x;
                 odom_trans.transform.translation.y = odom.pose.pose.position.y;
