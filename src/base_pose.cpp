@@ -110,6 +110,7 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
 	nav_msgs::Odometry odom;
 	odom.header = msg->header;
 	odom.header.frame_id = frame_id;
+	odom.child_frame_id = child_frame_id;
 
 	right_diff = old_right - rad_right;
 	left_diff = old_left - rad_left;
