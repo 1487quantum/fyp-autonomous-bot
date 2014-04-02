@@ -52,6 +52,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES base_controller base_controller_nodelet 
 	base_twist base_twist_nodelet 
+	base_pose base_pose_nodelet 
 	basic_twist_integrator basic_twist_integrator_nodelet
   CATKIN_DEPENDS geometry_msgs nodelet roscpp trajectory_msgs
 #  DEPENDS system_lib
@@ -75,6 +76,12 @@ add_library(base_controller
 add_library(base_controller_nodelet
   src/base_controller_nodelet.cpp
 )
+add_library(base_pose
+  src/base_pose.cpp
+)
+add_library(base_pose_nodelet
+  src/base_pose_nodelet.cpp
+)
 add_library(base_twist
   src/base_twist.cpp
 )
@@ -90,6 +97,7 @@ add_library(basic_twist_integrator_nodelet
 
 ## Declare a cpp executable
 add_executable(base_controller_node src/base_controller_node.cpp)
+add_executable(base_pose_node src/base_pose_node.cpp)
 add_executable(base_twist_node src/base_twist_node.cpp)
 add_executable(basic_twist_integrator_node src/basic_twist_integrator_node.cpp)
 
@@ -108,6 +116,17 @@ target_link_libraries(base_controller_nodelet
 target_link_libraries(base_controller_node
   ${catkin_LIBRARIES}
   base_controller
+)
+target_link_libraries(base_pose
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(base_pose_nodelet
+  ${catkin_LIBRARIES}
+  base_pose
+)
+target_link_libraries(base_pose_node
+  ${catkin_LIBRARIES}
+  base_pose
 )
 target_link_libraries(base_twist
   ${catkin_LIBRARIES}
@@ -148,6 +167,7 @@ target_link_libraries(basic_twist_integrator_node
 
 ## Mark executables and/or libraries for installation
 install(TARGETS base_controller base_controller_nodelet base_controller_node 
+	base_pose base_pose_nodelet base_pose_node
 	base_twist base_twist_nodelet base_twist_node
 	basic_twist_integrator basic_twist_integrator_nodelet basic_twist_integrator_node	
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

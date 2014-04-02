@@ -5,7 +5,12 @@
 </library>
 <library path="lib/libbase_twist_nodelet">
   <class name="diff_drive_controller/base_twist_nodelet" type="base_twist::base_twist_nodelet" base_class_type="nodelet::Nodelet">
-    <description>Generic base joint state to twist converter for diff drive robots</description>
+    <description>Generic base joint state to twist_stamped converter for diff drive robots</description>
+  </class>
+</library>
+<library path="lib/libbase_pose_nodelet">
+  <class name="diff_drive_controller/base_pose_nodelet" type="base_pose::base_pose_nodelet" base_class_type="nodelet::Nodelet">
+    <description>Generic base joint state to pose_stamped converter for diff drive robots</description>
   </class>
 </library>
 <library path="lib/libbasic_twist_integrator_nodelet">
