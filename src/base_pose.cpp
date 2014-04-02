@@ -18,6 +18,7 @@ base_pose::base_pose( const ros::NodeHandle &_nh, const ros::NodeHandle &_nh_pri
 	nh_priv.param<std::string>( "frame_id", frame_id, "base_link" );
 	nh_priv.param<std::string>( "left_wheel_joint", left_joint_name, "left_wheel_joint" );
 	nh_priv.param<std::string>( "right_wheel_joint", right_joint_name, "right_wheel_joint" );
+	nh_priv.param( "pub_transform", pub_transform, false );
 	nh_priv.param( "x_covariance", x_covariance, x_covariance);
 	nh_priv.param( "y_covariance", y_covariance, y_covariance);
 	nh_priv.param( "yaw_covariance", yaw_covariance, yaw_covariance );
@@ -53,7 +54,7 @@ bool base_pose::stat( )
 
 void base_pose::odom_cb( )
 {
-	if( odom_pub.getNumSubscribers( ) > 0 )
+	if( odom_pub.getNumSubscribers( ) > 0 || pub_transform )
 	{
 		if( !joint_state_sub && !( joint_state_sub = nh.subscribe( "joint_state", 1, &base_pose::joint_state_cb, this ) ) )
 			ROS_ERROR( "Failed to start joint state subscription" );
@@ -144,6 +145,25 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
 	odom.pose.pose.position.y = y;
 
 	odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(th);
+
+	//publish the message
+        odom_pub.publish(odom);
+
+        if( pub_transform )
+        {
+                geometry_msgs::TransformStamped odom_trans;
+                odom_trans.header = msg->header;
+                odom_trans.header.frame_id = frame_id;
+                odom_trans.child_frame_id = msg->header.frame_id;
+
+                odom_trans.transform.translation.x = odom.pose.pose.position.x;
+                odom_trans.transform.translation.y = odom.pose.pose.position.y;
+                odom_trans.transform.translation.z = 0.0;
+                odom_trans.transform.rotation = odom.pose.pose.orientation;
+
+                //send the transform
+                odom_broadcaster.sendTransform(odom_trans);
+        }
 	
 	odom_pub.publish(odom);
 

@@ -5,6 +5,7 @@
 #include <sensor_msgs/JointState.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 
 namespace base_pose
 {
@@ -25,9 +26,11 @@ private:
 	ros::Subscriber joint_state_sub;
 	const ros::SubscriberStatusCallback odom_callback;
 
+	bool pub_transform;
 	std::string frame_id;
 	std::string left_joint_name;
 	std::string right_joint_name;
+	
 	double wheel_base;
 	double wheel_diam;
 	double wheel_diam2;
@@ -35,6 +38,8 @@ private:
 	double x_covariance;
 	double y_covariance;
 	double yaw_covariance;
+
+	tf::TransformBroadcaster odom_broadcaster;
 
 	void odom_cb( );
 	void joint_state_cb( const sensor_msgs::JointStatePtr &msg );
