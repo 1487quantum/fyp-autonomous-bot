@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
 
 namespace base_pose

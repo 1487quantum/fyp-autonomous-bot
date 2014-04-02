@@ -29,7 +29,7 @@ base_pose::~base_pose( )
 
 bool base_pose::start( )
 {
-	if( !( odom_pub = nh.advertise<nav_msgs::Odom>( "wheel_odom", 1, odom_callback, odom_callback, ros::VoidConstPtr( ), false ) ) )
+	if( !( odom_pub = nh.advertise<nav_msgs::Odometry>( "wheel_odom", 1, odom_callback, odom_callback, ros::VoidConstPtr( ), false ) ) )
 		return false;
 
 	odom_cb( );
@@ -105,7 +105,7 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
 	if( !joint_recv )
 		return;
 
-	geometry_msgs::PoseStamped odom;
+	nav_msgs::Odometry odom;
 	odom.header = msg->header;
 	odom.header.frame_id = frame_id;
 
@@ -115,11 +115,14 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
 	dt = (odom.header.stamp - last_time).toSec();
 
 	//generate pose
-	x += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * cos(th);
-	y += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * sin(th);
+	x += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * cos( th );
+	y += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * sin( th );
 	th += ( ( wheel_diam * dt * left_diff ) / ( 4.0 * wheel_base ) ) - ( ( wheel_diam * dt * right_diff ) / ( 4.0 * wheel_base ) );
 
-	//copy twist
+	//generate twist
+	odom.twist.twist.linear.x = ( ( ( wheel_diam * vel_left ) / 4.0 ) + ( ( wheel_diam2 * vel_right ) / 4.0 ) ) * cos( th );
+	odom.twist.twist.linear.y = ( ( ( wheel_diam * vel_left ) / 4.0 ) + ( ( wheel_diam2 * vel_right ) / 4.0 ) ) * sin( th );
+	odom.twist.twist.angular.z = ( ( wheel_diam * vel_left ) / ( 4.0 * wheel_base ) ) - ( ( wheel_diam * vel_right ) / ( 4.0 * wheel_base ) );	
 
 	//set covariances
 	odom.pose.covariance[0] = x_covariance;
