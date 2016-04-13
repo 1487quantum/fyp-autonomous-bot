@@ -12,14 +12,14 @@ base_pose::base_pose( const ros::NodeHandle &_nh, const ros::NodeHandle &_nh_pri
 	y_covariance( 20 ),
 	yaw_covariance( 50 )
 {
-	nh_priv.param( "wheel_base", wheel_base, 0.2635 );
-	nh_priv.param( "wheel_diam", wheel_diam, 0.0750 );
+	nh_priv.param( "wheel_base", wheel_base, 0.5200 );
+	nh_priv.param( "wheel_diam", wheel_diam, 0.1750 );
 	nh_priv.param( "wheel_diam2", wheel_diam2, wheel_diam );
-	nh_priv.param<std::string>( "frame_id", frame_id, "base_link" );
-	nh_priv.param<std::string>( "child_frame_id", child_frame_id, "odom" );
+	nh_priv.param<std::string>( "frame_id", frame_id, "odom" );
+	nh_priv.param<std::string>( "child_frame_id", child_frame_id, "base_link" );
 	nh_priv.param<std::string>( "left_wheel_joint", left_joint_name, "left_wheel_joint" );
 	nh_priv.param<std::string>( "right_wheel_joint", right_joint_name, "right_wheel_joint" );
-	nh_priv.param( "pub_transform", pub_transform, false );
+	nh_priv.param( "pub_transform", pub_transform, true );
 	nh_priv.param( "x_covariance", x_covariance, x_covariance);
 	nh_priv.param( "y_covariance", y_covariance, y_covariance);
 	nh_priv.param( "yaw_covariance", yaw_covariance, yaw_covariance );
@@ -112,20 +112,20 @@ void base_pose::joint_state_cb( const sensor_msgs::JointStatePtr &msg )
 	odom.header.frame_id = frame_id;
 	odom.child_frame_id = child_frame_id;
 
-	right_diff = old_right - rad_right;
-	left_diff = old_left - rad_left;
+	right_diff = rad_right - old_right;
+	left_diff = rad_left - old_left;
 
 	dt = (odom.header.stamp - last_time).toSec();
 
 	//generate pose
-	x += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * cos( th );
-	y += ( ( ( wheel_diam * dt * left_diff ) / 4.0 ) + ( ( wheel_diam2 * dt * right_diff ) / 4.0 ) ) * sin( th );
-	th += ( ( wheel_diam * dt * left_diff ) / ( 4.0 * wheel_base ) ) - ( ( wheel_diam * dt * right_diff ) / ( 4.0 * wheel_base ) );
+	x += ( ( ( wheel_diam  * left_diff ) / 4.0 ) + ( ( wheel_diam2 * right_diff ) / 4.0 ) ) * cos( th );
+	y += ( ( ( wheel_diam  * left_diff ) / 4.0 ) + ( ( wheel_diam2 * right_diff ) / 4.0 ) ) * sin( th );
+	th += ( ( wheel_diam  * right_diff ) / ( 2.0 * wheel_base ) ) - ( ( wheel_diam * left_diff ) / ( 2.0 * wheel_base ) );
 
 	//generate twist
 	odom.twist.twist.linear.x = ( ( ( wheel_diam * vel_left ) / 4.0 ) + ( ( wheel_diam2 * vel_right ) / 4.0 ) ) * cos( th );
 	odom.twist.twist.linear.y = ( ( ( wheel_diam * vel_left ) / 4.0 ) + ( ( wheel_diam2 * vel_right ) / 4.0 ) ) * sin( th );
-	odom.twist.twist.angular.z = ( ( wheel_diam * vel_left ) / ( 4.0 * wheel_base ) ) - ( ( wheel_diam * vel_right ) / ( 4.0 * wheel_base ) );	
+	odom.twist.twist.angular.z = ( ( wheel_diam * vel_right ) / ( 2.0 * wheel_base ) ) - ( ( wheel_diam * vel_left ) / ( 2.0 * wheel_base ) );	
 
 	//set covariances
 	odom.pose.covariance[0] = x_covariance;

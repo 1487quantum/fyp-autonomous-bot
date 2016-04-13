@@ -9,8 +9,8 @@ base_controller::base_controller( const ros::NodeHandle &_nh, const ros::NodeHan
 	nh_priv( _nh_priv ),
 	joint_traj_callback( boost::bind(&base_controller::joint_traj_cb, this) )
 {
-	nh_priv.param( "wheel_base", wheel_base, 0.2635 );
-	nh_priv.param( "wheel_diam", wheel_diam, 0.0750 );
+	nh_priv.param( "wheel_base", wheel_base, 0.5200 );
+	nh_priv.param( "wheel_diam", wheel_diam, 0.1750 );
 	nh_priv.param( "wheel_diam2", wheel_diam2, wheel_diam );
 	nh_priv.param<std::string>( "left_wheel_joint", left_joint_name, "left_wheel_joint" );
         nh_priv.param<std::string>( "right_wheel_joint", right_joint_name, "right_wheel_joint" );
