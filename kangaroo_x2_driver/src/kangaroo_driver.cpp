@@ -22,15 +22,15 @@ kangaroo::kangaroo( ros::NodeHandle &_nh, ros::NodeHandle &_nh_priv ) :
 	fd( -1 ),
 	nh( _nh ),
 	nh_priv( _nh_priv ),
-	encoder_lines_per_revolution(3200),
+	encoder_lines_per_revolution(520),
 	hz(50)
 	//diameter_of_wheels(.117475)
 	//msg(new sensor_msgs::JointState)
 {
 	ROS_INFO( "Initializing" );
 	nh_priv.param( "port", port, (std::string)"/dev/ttyUSB0" );
-	nh_priv.param( "ch1_joint_name", ch1_joint_name, (std::string)"1" );
-	nh_priv.param( "ch2_joint_name", ch2_joint_name, (std::string)"2" );
+	nh_priv.param( "ch1_joint_name", ch1_joint_name, (std::string)"left_wheel_joint" );
+	nh_priv.param( "ch2_joint_name", ch2_joint_name, (std::string)"right_wheel_joint" );
 
 	// the rate we want to set the timer at
 	double rate = (double)1/(double)hz;
