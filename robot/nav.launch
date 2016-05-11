@@ -29,8 +29,6 @@
   <node pkg="diff_drive_controller" type="base_pose_node" name="base_pose_node"/> 
 
 <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.20 0 0.18 0 0 0 base_link laser 100" />
-<node pkg="tf" type="static_transform_publisher" name="base_link_to_left_wheel" args="0 0.25 0 0 0 0 base_link left_wheel 100" />
-<node pkg="tf" type="static_transform_publisher" name="base_link_to_right_wheel" args="0 -0.25 0 0 0 0 base_link right_wheel 100" />
 
 <!--
 <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" args="/scan">
@@ -48,6 +46,7 @@
 -->
 
 <node pkg="map_server" type="map_server" name="map_server" args="$(find robot)/map/map.yaml"/>
+
 <!-- Localisation -->
 <node pkg="amcl" type="amcl" name="amcl">
  	<param name="odom_model_type"           value="diff"/>
