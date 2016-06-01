@@ -1,0 +1,81 @@
+#include <ros/ros.h>
+#include <sensor_msgs/Joy.h>
+#include <geometry_msgs/Twist.h>
+
+ class JoyTeleop
+ {
+	public:
+		JoyTeleop();
+
+	private: // declare all the required functions and variables
+		void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
+		void updateParameters();
+		void timerCallback(const ros::TimerEvent& e);
+		void publishZeroMessage();
+    		void publishPoint(); // function to publish point
+
+		double linearScale, angularScale;
+		int Button, linearAxis, angularAxis;
+		bool canMove;
+		ros::Subscriber joySub; // subscribe to joystick
+    		ros::Subscriber poseSub; // subscribe to robot_pose
+    		ros::Publisher pointPub; // publish robot_pose
+		ros::NodeHandle nh; // Nodehandler
+		ros::Timer timeout; // Ros timer
+};
+
+JoyTeleop::JoyTeleop() { // constructor for class JoyTeleop
+	joySub = nh.subscribe("/joy", 10, &JoyTeleop::joyCallback, this);
+  poseSub = nh.subscribe("/robot_pose", 10, &JoyTeleop::joyCallback, this);
+	twistPub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+  pointPub= nh.advertise<geometry_msgs::Twist>("/point", 10);
+
+	updateParameters();
+}
+
+void JoyTeleop::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
+	// process and publish
+	geometry_msgs::Twist twistMsg;
+
+	// check button, change variable button to switch to another button
+	bool switchActive = (msg->buttons[Button] == 1);
+
+	if (switchActive) {		
+    	publishPoint();	
+}
+
+void JoyTeleop::updateParameters() {
+	// update the parameters for processing the joystick messages
+	if (!nh.getParam("linear_scale", linearScale))
+		linearScale = 0.25;
+
+	if (!nh.getParam("angular_scale", angularScale))
+		angularScale = 0.5;
+
+	if (!nh.getParam("button", Button))
+		Button = 1;
+
+	if (!nh.getParam("linear_axis", linearAxis))
+		linearAxis = 1;
+
+	if (!nh.getParam("angular_axis", angularAxis))
+		angularAxis = 0;
+}
+
+
+
+void JoyTeleop::publishPoint() {
+	geometry_msgs::Twist msg;
+	msg.linear.x = 1;
+	msg.angular.z = 1;
+	pointPub.publish(msg);
+}
+
+int main(int argc, char** argv) {
+	ros::init(argc, argv, "pointRecorder_node");
+	JoyTeleop joy_teleop_node;
+
+	ros::spin();
+
+	return 0;
+}
