@@ -37,8 +37,11 @@
   <node pkg="kangaroo_driver" type="kangaroo_driver_node" name="kangaroo_driver_node"/>
   <node pkg="diff_drive_controller" type="base_pose_node" name="base_pose_node"/>
 
-<!-- Lidar offset -->
-<node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.20 0 0.18 0 0 0 base_link laser 100" />
+  <!-- Offset -->
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0.24 0 0.18 0 0 0 base_link laser 100" />
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_IMU" args="0.24 0.043 0.025 -1.57 0 0 base_link IMU 100" />
+  <node pkg="tf" type="static_transform_publisher" name="base_link_to_cam" args="0.24 0 0.065 0 0 0 base_link axis/image_raw/compressed 100" />
+
 
 <!-- IMU -->
 <node pkg="mtig_driver" type="mtig_driver_node" name="mtig_driver" respawn="true" >
