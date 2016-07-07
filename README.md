@@ -7,6 +7,7 @@ We will also be installing the following ROS Packages system wide: [<i>$ sudo ap
 - Map server: ros-indigo-map_server
 - AMCL: ros-indigo-amcl
 - Move base: ros-indigo-move-base
+- Camera Info Manager (Py): ros-indigo-camera-info-manage-py
 
 ##ROS Packages
 Below are the following packages that we will be using in this project:
@@ -17,3 +18,4 @@ Below are the following packages that we will be using in this project:
 - SICK LMS111 Lidar Driver: LMS1xx Driver
 - Main robot control: robot
 - Robot configurations: robot_config
+- Axis Camera: axis_camera
