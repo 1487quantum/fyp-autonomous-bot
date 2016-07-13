@@ -4,20 +4,24 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/String.h>
-
 #include <rosbag/bag.h>
 
+#include <queue>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <stdlib.h>
 
 typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 
 //bag
 rosbag::Bag bag;
 
-class JoyTeleop
+class ptRecorder
 {
 
   public:
-  JoyTeleop();
+  ptRecorder();
 
   private: // declare all the required functions and variables
   void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
@@ -43,16 +47,16 @@ class JoyTeleop
 };
 
 
-JoyTeleop::JoyTeleop() { // constructor for class JoyTeleop
-  joySub = nh.subscribe("/joy", 10, &JoyTeleop::joyCallback, this);
-  poseSub = nh.subscribe("/robot_pose", 10, &JoyTeleop::poseCallback, this);
+ptRecorder::ptRecorder() { // constructor for class JoyTeleop
+  joySub = nh.subscribe("/joy", 10, &ptRecorder::joyCallback, this);
+  poseSub = nh.subscribe("/robot_pose", 10, &ptRecorder::poseCallback, this);
 
   pointPub= nh.advertise<geometry_msgs::PoseStamped>("/pt", 10);
 
   updateParameters();
 }
 
-void JoyTeleop::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
+void ptRecorder::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
   // process and publish
   geometry_msgs::Twist twistMsg;
 
@@ -65,11 +69,11 @@ void JoyTeleop::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
 
 }
 
-void JoyTeleop::poseCallback(const PoseConstPtr& msg) {
+void ptRecorder::poseCallback(const PoseConstPtr& msg) {
   pos = *msg;
 }
 
-void JoyTeleop::updateParameters() {
+void ptRecorder::updateParameters() {
   // update the parameters for processing the joystick messages
   if (!nh.getParam("button", Button))
   Button = 5;   //Button RB
@@ -81,11 +85,12 @@ void JoyTeleop::updateParameters() {
   */
 }
 
-void JoyTeleop::publishPoint() {
+void ptRecorder::publishPoint() {
   pointPub.publish(pos);
 
   //Save points in rosbag
   bag.write("point",  ros::Time::now(), pos);
+  ROS_INFO_STREAM("Waypoint: " << pos);
 
 }
 
@@ -93,7 +98,7 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "pointRecorder_node");
   bag.open("/home/fyp-trolley/catkin_ws/waypts.bag", rosbag::bagmode::Write);
 
-  JoyTeleop joy_teleop_node;
+  ptRecorder joy_teleop_node;
   ros::spin();
   //Close bag
   bag.close();
