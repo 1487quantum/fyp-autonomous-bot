@@ -144,8 +144,7 @@
     <param name="base_global_planner" value="carrot_planner/CarrotPlanner"/>
     <param name="conservative_reset_dist" type="double" value="3.0" />
     <param name="recovery_behavior_enabled" type="bool" value="true" />
-	<!-- Remapping I-->
-		<remap from="odom" to="/robot_pose_ekf/odom_combined"/>
+
   </node>
 
 
