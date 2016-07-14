@@ -17,6 +17,8 @@ typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 //bag
 rosbag::Bag bag;
 
+bool ft;  //First time
+
 class ptRecorder
 {
 
@@ -42,8 +44,6 @@ class ptRecorder
   //Pose
   geometry_msgs::PoseStamped pos;
 
-
-
 };
 
 
@@ -62,9 +62,14 @@ void ptRecorder::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
 
   // check button, change variable button to switch to another button
   bool switchActive = (msg->buttons[Button] == 1);
-
   if (switchActive) {
+    //Run following code if button is pressed for the 1st time
+    if(ft){
+      ft=0;
+      bag.open("/home/fyp-trolley/catkin_ws/waypts.bag", rosbag::bagmode::Write);   //ToDo: Open bag only if button is pressed
+    }
     publishPoint();
+
   }
 
 }
@@ -96,8 +101,7 @@ void ptRecorder::publishPoint() {
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "pointRecorder_node");
-  bag.open("/home/fyp-trolley/catkin_ws/waypts.bag", rosbag::bagmode::Write);
-
+  ft = 1;
   ptRecorder joy_teleop_node;
   ros::spin();
   //Close bag
