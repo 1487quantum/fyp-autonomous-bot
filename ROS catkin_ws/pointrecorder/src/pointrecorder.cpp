@@ -6,17 +6,10 @@
 #include <std_msgs/String.h>
 #include <rosbag/bag.h>
 
-#include <queue>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <stdlib.h>
-
 typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 
-//bag
+//Variables
 rosbag::Bag bag;
-
 bool ft;  //First time
 
 class ptRecorder
@@ -43,9 +36,7 @@ class ptRecorder
 
   //Pose
   geometry_msgs::PoseStamped pos;
-
 };
-
 
 ptRecorder::ptRecorder() { // constructor for class JoyTeleop
   joySub = nh.subscribe("/joy", 10, &ptRecorder::joyCallback, this);
@@ -69,9 +60,7 @@ void ptRecorder::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
       bag.open("/home/fyp-trolley/catkin_ws/waypts.bag", rosbag::bagmode::Write);   //ToDo: Open bag only if button is pressed
     }
     publishPoint();
-
   }
-
 }
 
 void ptRecorder::poseCallback(const PoseConstPtr& msg) {
@@ -92,10 +81,8 @@ void ptRecorder::updateParameters() {
 
 void ptRecorder::publishPoint() {
   pointPub.publish(pos);
-
-  //Save points in rosbag
-  bag.write("point",  ros::Time::now(), pos);
-  ROS_INFO_STREAM("Waypoint: " << pos);
+  bag.write("point",  ros::Time::now(), pos);   //Save points in rosbag
+  ROS_INFO_STREAM("Waypoint: " << pos);   //Display in console
 
 }
 
@@ -106,6 +93,5 @@ int main(int argc, char** argv) {
   ros::spin();
   //Close bag
   bag.close();
-
   return 0;
 }
