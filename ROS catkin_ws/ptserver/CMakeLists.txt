@@ -25,7 +25,9 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES ptserver
-  CATKIN_DEPENDS rosbag roscpp std_msgs
+
+  CATKIN_DEPENDS rosbag roscpp geometry_msgs move_base_msgs actionlib
+
 #  DEPENDS system_lib
 )
 
