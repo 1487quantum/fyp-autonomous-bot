@@ -2,6 +2,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <tf/transform_broadcaster.h>
 
 #include "std_msgs/String.h"
 #include <sstream>
@@ -34,10 +35,10 @@ public:
   void countContents(std::string const& filename);
   void dumpContents(rosbag::Bag& b);
   void findBag(std::string const& filename);
-  void p2p();
+  void p2p(double distance_x,double distance_y);
+  void publishPoint(std_msgs::String msg);
 
 private:
-  void publishPoint(std_msgs::String msg);
   ros::Publisher pointPub; // publish robot_pose
   ros::NodeHandle nh; // Nodehandler
   ros::Timer timeout; // Ros timer
@@ -96,9 +97,9 @@ void ptServer::dumpContents(rosbag::Bag& b) {
     msg.data = ss.str();
     count++;
   }
-  ROS_INFO("%s", msg.data.c_str());
-  publishPoint(msg);
+  //ROS_INFO("%s", msg.data.c_str());
 
+  publishPoint(msg);
 }
 
 //Open bag location
@@ -110,7 +111,7 @@ void ptServer::findBag(std::string const& filename) {
 }
 
 //Point to point navigation
-void ptServer::p2p(){
+void ptServer::p2p(double distance_x,double distance_y){
   //tell the action client that we want to spin a thread by default
   MoveBaseClient ac("move_base", true);
 
@@ -122,13 +123,26 @@ void ptServer::p2p(){
   move_base_msgs::MoveBaseGoal goal;
 
   //we'll send a goal to the robot to move 1 meter forward
-  goal.target_pose.header.frame_id = "base_link";
+  goal.target_pose.header.frame_id = "map"; // reference to map
   goal.target_pose.header.stamp = ros::Time::now();
 
-  double distance_x = .5;
-  goal.target_pose.pose.position.x = 0.3;
-  goal.target_pose.pose.position.y = 1.0;
-  goal.target_pose.pose.orientation.w = 1;
+  // set x,y coordinates
+  goal.target_pose.pose.position.x = distance_x;
+  goal.target_pose.pose.position.y = distance_y;
+
+  // Set quaternion(angle)
+  double radians = 0.0 * (M_PI/180);
+  tf::Quaternion quaternion;
+  quaternion = tf::createQuaternionFromYaw(radians);
+
+  geometry_msgs::Quaternion qMsg;
+  tf::quaternionTFToMsg(quaternion, qMsg);
+
+  //goal.target_pose.pose.orientation = qMsg;
+    goal.target_pose.pose.orientation.x = 0.0;
+    goal.target_pose.pose.orientation.y = 0.0;
+    goal.target_pose.pose.orientation.z = 0.00;
+    goal.target_pose.pose.orientation.w = 1.0;
 
   ROS_INFO("Sending goal");
   ac.sendGoal(goal);
@@ -136,9 +150,9 @@ void ptServer::p2p(){
   ac.waitForResult();
 
   if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-  ROS_INFO("Hooray, the base moved %f meter forward", distance_x);
+  ROS_INFO("Hooray, the base moved to %f,%f", distance_x,distance_y);
   else
-  ROS_INFO("The base failed to move forward %f meters for some reason", distance_x);
+  ROS_INFO("The base failed to move to %f,%f", distance_x,distance_y);
 }
 
 int main(int argc, char** argv){
@@ -146,7 +160,16 @@ int main(int argc, char** argv){
   ptServer ps;
   ps.countContents(fpath);
   ps.findBag(fpath);
-  //p2p();
+  for (double i=0.0; i<coordX.size(); i+=1)
+  {
+    ps.p2p(coordX.at(i),coordY.at(i)); // send goals
+    ros::Duration(3).sleep(); // wait 3 sec
+  }
+
+  msg.data = ss.str();
+  while(1){
+    ps.publishPoint(msg);
+  }
   ros::spin();
   return 0;
 }
