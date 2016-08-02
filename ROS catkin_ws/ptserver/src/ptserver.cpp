@@ -23,10 +23,11 @@ typedef std::vector<double> vec_d;  //Allows dynamic sizing
 #include <iostream>
 
 int count;
-vec_d coordX,coordY, angW;
+vec_d coordX,coordY, angW,angZ;
+double currentX,currentY;
 std::string const& fpath = "/home/fyp-trolley/catkin_ws/waypts.bag";  //Bag location
 
-std_msgs::String msg;
+geometry_msgs::PoseStamped msg;
 std::stringstream ss;
 
 class ptServer{
@@ -35,8 +36,9 @@ public:
   void countContents(std::string const& filename);
   void dumpContents(rosbag::Bag& b);
   void findBag(std::string const& filename);
-  void p2p(double distance_x,double distance_y);
-  void publishPoint(std_msgs::String msg);
+  void p2p(double distance_x,double distance_y,double angle_z,double angle_w);
+  void publishPoint(geometry_msgs::PoseStamped msg);
+
 
 private:
   ros::Publisher pointPub; // publish robot_pose
@@ -45,12 +47,15 @@ private:
 };
 
 ptServer::ptServer(){
-  pointPub= nh.advertise<std_msgs::String>("/target_pts", 10);
+  pointPub= nh.advertise<geometry_msgs::PoseStamped>("/target_pts", 10);
+  //ros::Subscriber sub = nh.subscribe("odom", 1000, chatterCallback);
 }
 
-void ptServer::publishPoint(std_msgs::String msg){
+void ptServer::publishPoint(geometry_msgs::PoseStamped msg){
   pointPub.publish(msg);
 }
+
+
 
 //Count no of waypoints
 void ptServer::countContents(std::string const& filename) {
@@ -82,24 +87,26 @@ void ptServer::dumpContents(rosbag::Bag& b) {
 
   foreach(rosbag::MessageInstance m, view){
     geometry_msgs::PoseStamped::ConstPtr msg_g = m.instantiate<geometry_msgs::PoseStamped>();
+
+    //publishPoint(msg_g);
     coordX.push_back(msg_g->pose.position.x);
     coordY.push_back(msg_g->pose.position.y);
     angW.push_back(msg_g->pose.orientation.w);
+    angZ.push_back(msg_g->pose.orientation.z);
 
     //Display in console
     std::cout << "Waypoint " << count << ":"<< std::endl; //Waypoint id
     std::cout << coordX.at(count) << ", "; //X
     std::cout << coordY.at(count) << ", "; //Y
-    std::cout << angW.at(count) << std::endl; //Angle
+    std::cout << angZ.at(count) << ", "; // Angle w
+    std::cout << angW.at(count) << std::endl; //Angle z
 
     //For publishing
-    ss << count << ", " << coordX.at(count) << ", " << coordY.at(count) << ", " << angW.at(count) << "\n";
-    msg.data = ss.str();
     count++;
   }
   //ROS_INFO("%s", msg.data.c_str());
 
-  publishPoint(msg);
+
 }
 
 //Open bag location
@@ -111,7 +118,7 @@ void ptServer::findBag(std::string const& filename) {
 }
 
 //Point to point navigation
-void ptServer::p2p(double distance_x,double distance_y){
+void ptServer::p2p(double distance_x,double distance_y,double angle_z,double angle_w){
   //tell the action client that we want to spin a thread by default
   MoveBaseClient ac("move_base", true);
 
@@ -121,6 +128,7 @@ void ptServer::p2p(double distance_x,double distance_y){
   }
 
   move_base_msgs::MoveBaseGoal goal;
+  geometry_msgs::PoseStamped goalx;
 
   //we'll send a goal to the robot to move 1 meter forward
   goal.target_pose.header.frame_id = "map"; // reference to map
@@ -129,6 +137,15 @@ void ptServer::p2p(double distance_x,double distance_y){
   // set x,y coordinates
   goal.target_pose.pose.position.x = distance_x;
   goal.target_pose.pose.position.y = distance_y;
+
+  //
+
+  goalx.header.frame_id = "map"; // reference to map
+  goalx.header.stamp = ros::Time::now();
+
+  // set x,y coordinates
+  goalx.pose.position.x = distance_x;
+  goalx.pose.position.y = distance_y;
 
   // Set quaternion(angle)
   double radians = 0.0 * (M_PI/180);
@@ -141,35 +158,48 @@ void ptServer::p2p(double distance_x,double distance_y){
   //goal.target_pose.pose.orientation = qMsg;
     goal.target_pose.pose.orientation.x = 0.0;
     goal.target_pose.pose.orientation.y = 0.0;
-    goal.target_pose.pose.orientation.z = 0.00;
-    goal.target_pose.pose.orientation.w = 1.0;
+    goal.target_pose.pose.orientation.z = angle_z;
+    goal.target_pose.pose.orientation.w = angle_w;
 
-  ROS_INFO("Sending goal");
+
+    goalx.pose.orientation.x = 0.0;
+    goalx.pose.orientation.y = 0.0;
+    goalx.pose.orientation.z = angle_z;
+    goalx.pose.orientation.w = angle_w;
+
+  ROS_INFO("Sending next command");
   ac.sendGoal(goal);
+  publishPoint(goalx);
 
   ac.waitForResult();
-
+  ROS_INFO("Moving to goal");
   if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-  ROS_INFO("Hooray, the base moved to %f,%f", distance_x,distance_y);
+  ROS_INFO("The base successfully moved to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
   else
-  ROS_INFO("The base failed to move to %f,%f", distance_x,distance_y);
+  ROS_INFO("The base failed to move to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
+
 }
+
+
+
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "ptserver_node");
   ptServer ps;
   ps.countContents(fpath);
   ps.findBag(fpath);
+
+  //msg.data = ss.str();
+  //ps.publishPoint(msg);
+
   for (double i=0.0; i<coordX.size(); i+=1)
   {
-    ps.p2p(coordX.at(i),coordY.at(i)); // send goals
-    ros::Duration(3).sleep(); // wait 3 sec
+    ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+    //ROS_INFO("Waiting for 2sec...");
+    //ros::Duration(2).sleep(); // wait 2 sec
   }
 
-  msg.data = ss.str();
-  while(1){
-    ps.publishPoint(msg);
-  }
+
   ros::spin();
   return 0;
 }
