@@ -7,8 +7,10 @@
 #include <math.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
+#include <sensor_msgs/LaserScan.h>
 
 #include "std_msgs/String.h"
+#include "std_msgs/Float64.h"
 #include <sstream>
 
 #include <move_base_msgs/MoveBaseAction.h>
@@ -23,17 +25,26 @@ typedef std::vector<double> vec_d;  //Allows dynamic sizing
 typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
+//Joystick button lookup table
+
+int btnB=2,btnX=0,btnRT=7,btnLB=4,btnLT=6;
+
+//-----------------------------------------------------------
 
 //For I/O
 #include <fstream>
 #include <iostream>
 
-int count;
+// navigation
+int count,bus_stop,bus_stop1,bus_stop2,move;
 vec_d coordX,coordY, angW,angZ;
 double currentX,currentY;
-double distToGoal,distToGoalprev;
+double distToGoal;
+double goalCanceled;
+double distObstacle=10;
 std::string const& fpath = "/home/fyp-trolley/catkin_ws/waypts.bag";  //Bag location
 
+sensor_msgs::LaserScan scanMsg;
 geometry_msgs::PoseStamped msg;
 geometry_msgs::PoseStamped pos; //current pos
 double xd,xy;
@@ -49,9 +60,9 @@ public:
   void publishPoint(geometry_msgs::PoseStamped msg);
   void poseCallback(const PoseConstPtr& msg);
   void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
+  void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan);
   void publishVel(geometry_msgs::Twist msg);
-
-
+  void setParam();
 
 
 private:
@@ -60,19 +71,36 @@ private:
   ros::Publisher distToGoalPub;
   ros::Subscriber poseSub; // Subscribe to robot_pose
   ros::Subscriber joySub; // subscribe to joystick
+  ros::Subscriber scanSub; // subscribe to laser
   ros::NodeHandle nh; // Nodehandler
   ros::Timer timeout; // Ros timer
 };
 
 ptServer::ptServer(){
-  velPub= nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+  velPub= nh.advertise<geometry_msgs::Twist>("stop_vel", 1); //eBrake using lidar
   pointPub= nh.advertise<geometry_msgs::PoseStamped>("/target_pts", 10);
+  distToGoalPub= nh.advertise<std_msgs::Float64>("/tgoal", 10);
+
   poseSub= nh.subscribe("/robot_pose", 10, &ptServer::poseCallback, this);
   joySub = nh.subscribe("/joy", 10, &ptServer::joyCallback, this);
+  scanSub = nh.subscribe("/scan", 10, &ptServer::scanCallback, this);
+
+
+
 }
 
 void ptServer::publishPoint(geometry_msgs::PoseStamped msg){
   pointPub.publish(msg);
+}
+void ptServer::setParam()
+{
+  while(move==0)
+  {
+    ros::spinOnce();
+  }
+  move=0;
+  nh.param<int>("bus_stop1", bus_stop1, 2);
+  nh.param<int>("bus_stop2", bus_stop2, 4);
 }
 void ptServer::publishVel(geometry_msgs::Twist msg){
   velPub.publish(msg);
@@ -86,16 +114,45 @@ void ptServer::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
   geometry_msgs::Twist twistMsg;
 
   // check button, change variable button to switch to another button
-  bool switchActive = (msg->buttons[2] == 1);
+  bool switchActive = (msg->buttons[btnX] == 1);
   if (switchActive) {
-      eBrake=1;
-    }
+    //eBrake=0;
+    move=1;
+  }
   else
   {
-    eBrake=0;
+    //eBrake=0;
   }
 
 }
+
+void ptServer::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan) {
+  scanMsg = *scan;
+  geometry_msgs::Twist stop;
+  stop.linear.x=0;
+  stop.linear.y=0;
+  stop.linear.z=0;
+  stop.angular.z=0;
+  int size = scan->ranges.size();
+  for(int i=0; i<size ;i++){
+    if ((scanMsg.ranges[i]<0.4) && (scanMsg.ranges[i]>0.004))
+    {
+      distObstacle=scanMsg.ranges[i];
+      //std::cout<<"Obstacle detected: " <<distObstacle<<"m away ";
+      //std::cout<<std::endl;
+      eBrake=1;
+      publishVel(stop);
+      break;
+    }
+    else
+    {
+      eBrake=0;
+    }
+    //ros::Duration(0.1).sleep();
+  }
+}
+
+
 
 
 //Count no of waypoints
@@ -218,34 +275,74 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
   double odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
   distToGoal=sqrt(xd*xd+yd*yd);
 
-  if ((wayptCounter%10)!=0)
+  while (distToGoal>0.5 || (odz>0.20))
   {
-    while (distToGoal>0.5 || (odz>0.25))
+    if ((goalCanceled==1))
     {
-
-      xd=(distance_x)-pos.pose.position.x;
-      yd=(distance_y)-pos.pose.position.y;
-      odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
-      distToGoal=sqrt(xd*xd+yd*yd);
-
-      ros::spinOnce();
+      ros::Duration(3).sleep(); //Time delay of 3sec before resuming
+      if (eBrake!=1)
+      {
+      ac.sendGoal(goal);
+      goalCanceled=0;
+      ROS_INFO("[%d]Goal to x:%f y:%f resumed",wayptCounter,distance_x,distance_y);
+      }
     }
+    else if ((eBrake==1) && (goalCanceled==0))
+    {
+      ac.cancelAllGoals();
+      goalCanceled=1;
+      ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
+      ROS_INFO("Please clear the obstruction and wait 3sec...");
+    }
+    xd=(distance_x)-pos.pose.position.x;
+    yd=(distance_y)-pos.pose.position.y;
+    odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
+    distToGoal=sqrt(xd*xd+yd*yd);
+
+    std_msgs::Float64 tgoal;
+    tgoal.data = distToGoal;
+    distToGoalPub.publish(tgoal);
+    ros::spinOnce(); // refresh callback from robot_pose
+  }
+  if ((wayptCounter%10)!=0){
+    ROS_INFO("[%d]The base is approaching x:%f y:%f facing z:%f w:%f ",wayptCounter, distance_x,distance_y,angle_z,angle_w);
   }
   else
   {
-    ac.waitForResult();
+    while ((distToGoal!=0.0) && (odz!=0.0)) // Wait for complete alignment with target
+    {
+      if ((goalCanceled==1))
+      {
+        ros::Duration(3).sleep(); //Time delay of 3sec before resuming
+        if (eBrake!=1)
+        {
+        ac.sendGoal(goal);
+        goalCanceled=0;
+        ROS_INFO("[%d]Goal to x:%f y:%f resumed",wayptCounter,distance_x,distance_y);
+        }
+      }
+      else if ((eBrake==1) && (goalCanceled==0))
+      {
+        ac.cancelAllGoals();
+        goalCanceled=1;
+        ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
+        ROS_INFO("Please clear the obstruction and wait 3sec...");
+      }
   }
-
-  ROS_INFO("The base is approaching x:%f y:%f facing z:%f w:%f ", distance_x,distance_y,angle_z,angle_w);
-  /*
-  ac.waitForResult();
-  ROS_INFO("Moving to goal");
-  if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-  ROS_INFO("The base successfully moved to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
-  else
-  ROS_INFO("The base failed to move to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
-  */
 }
+  ROS_INFO("[%d]The base has reached x:%f y:%f facing z:%f w:%f ", wayptCounter, distance_x,distance_y,angle_z,angle_w);
+
+}
+
+
+/*
+ac.waitForResult();
+ROS_INFO("Moving to goal");
+if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+ROS_INFO("The base successfully moved to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
+else
+ROS_INFO("The base failed to move to %f,%f facing %f,%f ", distance_x,distance_y,angle_z,angle_w);
+*/
 
 
 
@@ -253,14 +350,28 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
 int main(int argc, char** argv){
   ros::init(argc, argv, "ptserver_node");
   ptServer ps;
+  move=0;
   ps.countContents(fpath);
   ps.findBag(fpath);
-
-  for (double i=0.0; i<coordX.size(); i+=1)
+  ROS_INFO("Use 'rosparam set bus_stop1 xx' to key in your next stop(xx is an integer)");
+  ROS_INFO("Press X to continue");
+  ps.setParam();
+  bus_stop=coordX.size(); // set bus_stop
+  for (double i=0.0; i<bus_stop1; i+=1)
   {
     ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
-
   }
+  ros::Duration(3).sleep();
+  ROS_INFO("Docked at Bus stop 1");
+  ROS_INFO("Use 'rosparam set bus_stop2 xx' to key in your next stop(xx is an integer)");
+  ROS_INFO("Press X to continue");
+  ps.setParam();
+  for (double i=bus_stop1; i<bus_stop2; i+=1)
+  {
+    ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+  }
+  ROS_INFO("Docked at Bus Terminal");
+  ROS_INFO("This bus service has terminated");
 
 
   ros::spin();
