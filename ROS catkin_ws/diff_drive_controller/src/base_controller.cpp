@@ -1,3 +1,5 @@
+//Change cmd_velF to cmd_vel to revert back to original
+
 #include "base_controller/base_controller.hpp"
 
 #include <ros/ros.h>
@@ -9,8 +11,8 @@ base_controller::base_controller( const ros::NodeHandle &_nh, const ros::NodeHan
 	nh_priv( _nh_priv ),
 	joint_traj_callback( boost::bind(&base_controller::joint_traj_cb, this) )
 {
-	nh_priv.param( "wheel_base", wheel_base, 0.6800 );
-	nh_priv.param( "wheel_diam", wheel_diam, 0.1500 );
+	nh_priv.param( "wheel_base", wheel_base, 0.68 );
+	nh_priv.param( "wheel_diam", wheel_diam, 0.150 );
 	nh_priv.param( "wheel_diam2", wheel_diam2, wheel_diam );
 	nh_priv.param<std::string>( "left_wheel_joint", left_joint_name, "left_wheel_joint" );
         nh_priv.param<std::string>( "right_wheel_joint", right_joint_name, "right_wheel_joint" );
@@ -55,7 +57,7 @@ void base_controller::joint_traj_cb( )
 {
 	if( joint_traj_pub.getNumSubscribers( ) > 0 )
 	{
-		if( !twist_sub && !( twist_sub = nh.subscribe( "cmd_vel", 1, &base_controller::twist_cb, this ) ) )
+		if( !twist_sub && !( twist_sub = nh.subscribe( "cmd_velF", 1, &base_controller::twist_cb, this ) ) )
 			ROS_ERROR( "Failed to start twist subscription" );
 	}
 	else if( twist_sub )
