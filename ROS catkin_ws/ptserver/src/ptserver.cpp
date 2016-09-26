@@ -39,7 +39,7 @@ int btnB=2,btnX=0,btnRT=7,btnLB=4,btnLT=6;
 int count,bus_stop,bus_stop1,bus_stop2,move;
 vec_d coordX,coordY, angW,angZ;
 double currentX,currentY;
-double distToGoal;
+double distToGoal,distToGoalCount;
 double goalCanceled;
 double distObstacle=10;
 std::string const& fpath = "/home/fyp-trolley/catkin_ws/waypts.bag";  //Bag location
@@ -53,6 +53,7 @@ int wayptCounter,eBrake;
 class ptServer{
 public:
   ptServer();
+  ros::Publisher distToGoalPub;
   void countContents(std::string const& filename);
   void dumpContents(rosbag::Bag& b);
   void findBag(std::string const& filename);
@@ -63,12 +64,12 @@ public:
   void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan);
   void publishVel(geometry_msgs::Twist msg);
   void setParam();
+  void pubTgoal();
 
 
 private:
   ros::Publisher pointPub; // publish pose_goal
   ros::Publisher velPub; // publish cmd_vel
-  ros::Publisher distToGoalPub;
   ros::Subscriber poseSub; // Subscribe to robot_pose
   ros::Subscriber joySub; // subscribe to joystick
   ros::Subscriber scanSub; // subscribe to laser
@@ -214,7 +215,17 @@ void ptServer::findBag(std::string const& filename) {
   dumpContents(b);
   b.close();
 }
-
+void ptServer::pubTgoal()
+{
+  if (distToGoalCount==10000)
+  {
+  std_msgs::Float64 tgoal;
+  tgoal.data = distToGoal;
+  distToGoalPub.publish(tgoal);
+  distToGoalCount=0;
+  }
+  distToGoalCount++;
+}
 //Point to point navigation
 void ptServer::p2p(double distance_x,double distance_y,double angle_z,double angle_w){
   //tell the action client that we want to spin a thread by default
@@ -299,9 +310,7 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
     odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
     distToGoal=sqrt(xd*xd+yd*yd);
 
-    std_msgs::Float64 tgoal;
-    tgoal.data = distToGoal;
-    distToGoalPub.publish(tgoal);
+    pubTgoal();
     ros::spinOnce(); // refresh callback from robot_pose
   }
   if ((wayptCounter%10)!=0){
@@ -311,6 +320,7 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
   {
     while ((distToGoal!=0.0) && (odz!=0.0)) // Wait for complete alignment with target
     {
+      pubTgoal();
       if ((goalCanceled==1))
       {
         ros::Duration(3).sleep(); //Time delay of 3sec before resuming
@@ -348,11 +358,13 @@ ROS_INFO("The base failed to move to %f,%f facing %f,%f ", distance_x,distance_y
 
 
 int main(int argc, char** argv){
+
   ros::init(argc, argv, "ptserver_node");
   ptServer ps;
   move=0;
   ps.countContents(fpath);
   ps.findBag(fpath);
+  ros::Duration(5).sleep();
   ROS_INFO("Use 'rosparam set bus_stop1 xx' to key in your next stop(xx is an integer)");
   ROS_INFO("Press X to continue");
   ps.setParam();
@@ -361,6 +373,9 @@ int main(int argc, char** argv){
   {
     ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
   }
+  std_msgs::Float64 tgoal;
+  tgoal.data=0;
+  ps.distToGoalPub.publish(tgoal);
   ros::Duration(3).sleep();
   ROS_INFO("Docked at Bus stop 1");
   ROS_INFO("Use 'rosparam set bus_stop2 xx' to key in your next stop(xx is an integer)");
