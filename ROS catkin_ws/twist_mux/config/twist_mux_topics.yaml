@@ -4,17 +4,17 @@
 # - topic   : input topic of geometry_msgs::Twist type
 # - timeout : timeout in seconds to start discarding old messages, and use 0.0 speed instead
 # - priority: priority in the range [0, 255]; the higher the more priority over other topics
-
+# change navigation topic from cmd_vel to smooth_cmd_vel for yocs_velocity_smoother program
 topics:
 -
   name    : navigation
-  topic   : cmd_vel
+  topic   : smooth_cmd_vel 
   timeout : 0.5
   priority: 10
 -
   name    : joystick
   topic   : joy_vel
-  timeout : 1.0
+  timeout : 0.5
   priority: 200
 -
   name    : p2pBrake
