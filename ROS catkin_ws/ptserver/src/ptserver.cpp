@@ -36,7 +36,7 @@ int btnB=2,btnX=0,btnRT=7,btnLB=4,btnLT=6;
 #include <iostream>
 
 // navigation
-int count,bus_stop,bus_stop1,bus_stop2,move;
+int count,bus_stop,route,move;
 vec_d coordX,coordY, angW,angZ;
 double currentX,currentY;
 double distToGoal,distToGoalCount;
@@ -100,8 +100,7 @@ void ptServer::setParam()
     ros::spinOnce();
   }
   move=0;
-  nh.param<int>("bus_stop1", bus_stop1, 2);
-  nh.param<int>("bus_stop2", bus_stop2, 4);
+  nh.param<int>("route", route, 1);
 }
 void ptServer::publishVel(geometry_msgs::Twist msg){
   velPub.publish(msg);
@@ -365,30 +364,36 @@ int main(int argc, char** argv){
   ps.countContents(fpath);
   ps.findBag(fpath);
   ros::Duration(5).sleep();
-  ROS_INFO("Use 'rosparam set bus_stop1 xx' to key in your next stop(xx is an integer)");
+  while(1){
+  ROS_INFO("Use 'rosparam set route x' to select route");
+  ROS_INFO("1=to door,2=to charging pt (Default:1)");
   ROS_INFO("Press X to continue");
   ps.setParam();
   bus_stop=coordX.size(); // set bus_stop
-  for (double i=0.0; i<bus_stop1; i+=1)
+  ROS_INFO("Route %d selected",route);
+  if (route==1){
+    ROS_INFO("Route towards door selected");
+  for (double i=0.0; i<13.0; i+=1)
   {
     ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+  }
+    }
+  else
+  {
+    ROS_INFO("Route towards charging pt selected");
+    for (double i=13.0; i<21.0; i+=1)
+    {
+      wayptCounter=12;
+      ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+    }
   }
   std_msgs::Float64 tgoal;
   tgoal.data=0;
   ps.distToGoalPub.publish(tgoal);
-  ros::Duration(3).sleep();
-  ROS_INFO("Docked at Bus stop 1");
-  ROS_INFO("Use 'rosparam set bus_stop2 xx' to key in your next stop(xx is an integer)");
-  ROS_INFO("Press X to continue");
-  ps.setParam();
-  for (double i=bus_stop1; i<bus_stop2; i+=1)
-  {
-    ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
-  }
   ROS_INFO("Docked at Bus Terminal");
   ROS_INFO("This bus service has terminated");
-
-
+  ros::Duration(3).sleep();
+}
   ros::spin();
   return 0;
 }
