@@ -132,8 +132,14 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy_msg
 {
   // Initializes with zeros by default.
   geometry_msgs::Twist cmd_vel_msg;
+   if (joy_msg->buttons[2])
+	{
 
-  if (enable_turbo_button >= 0 && joy_msg->buttons[enable_turbo_button])
+      cmd_vel_pub.publish(cmd_vel_msg);
+      sent_disable_msg = true;
+
+	}
+  else if (enable_turbo_button >= 0 && joy_msg->buttons[enable_turbo_button])
   {
     if (axis_linear_map.find("x") != axis_linear_map.end())
     {
@@ -209,52 +215,45 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy_msg
     cmd_vel_pub.publish(cmd_vel_msg);
     sent_disable_msg = false;
   }
-  else if (joy_msg->buttons[2])
-	    {
-      cmd_vel_pub.publish(cmd_vel_msg);
-      sent_disable_msg = true;
-    	     }
+
   else
   {
     // When enable button is released, immediately send a single no-motion command
     // in order to stop the robot.
     if (!sent_disable_msg)
     {
-	
 	if(prev_value[0]!=0){
 		if(prev_value[0]>0){
 		  for (double c=prev_value[0]; c>0.00; c-=0.01)
-		   {	
+		   {
 			cmd_vel_msg.linear.x=c;
-		
+
 			cmd_vel_pub.publish(cmd_vel_msg);
-			for(int e= 0;e<15000000;e++);
+			for(int e= 0;e<8000000;e++);
  			if (joy_msg->buttons[2])
 				break;
 			}
 
 		}else if(prev_value[0]<0){
 		  for (double d=prev_value[0]; d<0.00; d+=0.01)
-		   {	
+		   {
 			cmd_vel_msg.linear.x=d;
-		
+
 			cmd_vel_pub.publish(cmd_vel_msg);
-			for(int e= 0;e<15000000;e++);
+			for(int e= 0;e<8000000;e++);
  			if (joy_msg->buttons[2])
 				break;
 			}
 
 		}
 	}
-	     
- 
-
-	
-		cmd_vel_msg.linear.x=0.0;
+	cmd_vel_msg.linear.x=0.0;
 	cmd_vel_pub.publish(cmd_vel_msg);
-      sent_disable_msg = true;
+        sent_disable_msg = true;
     }
   }
+
 }
+
 
 }  // namespace teleop_twist_joy
