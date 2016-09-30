@@ -11,6 +11,8 @@
 
 #include "std_msgs/String.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/Int32.h"
+#include "std_msgs/Bool.h"
 #include <sstream>
 
 #include <move_base_msgs/MoveBaseAction.h>
@@ -42,24 +44,29 @@ double currentX,currentY;
 double distToGoal,distToGoalCount;
 double goalCanceled;
 double distObstacle=10;
+std_msgs::Bool obstacleIndi;
 std::string const& fpath = "/home/fyp-trolley/catkin_ws/waypts.bag";  //Bag location
 
 sensor_msgs::LaserScan scanMsg;
 geometry_msgs::PoseStamped msg;
 geometry_msgs::PoseStamped pos; //current pos
+std_msgs::Int32 msg2;
 double xd,xy;
 int wayptCounter,eBrake;
+
 
 class ptServer{
 public:
   ptServer();
   ros::Publisher distToGoalPub;
+  ros::Publisher obstacleIndiPub;
   void countContents(std::string const& filename);
   void dumpContents(rosbag::Bag& b);
   void findBag(std::string const& filename);
   void p2p(double distance_x,double distance_y,double angle_z,double angle_w);
   void publishPoint(geometry_msgs::PoseStamped msg);
   void poseCallback(const PoseConstPtr& msg);
+  void routeCallback(const std_msgs::Int32::ConstPtr& msg);
   void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
   void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan);
   void publishVel(geometry_msgs::Twist msg);
@@ -70,9 +77,11 @@ public:
 private:
   ros::Publisher pointPub; // publish pose_goal
   ros::Publisher velPub; // publish cmd_vel
+  ros::Publisher eStop; // publish pause_navigation
   ros::Subscriber poseSub; // Subscribe to robot_pose
   ros::Subscriber joySub; // subscribe to joystick
   ros::Subscriber scanSub; // subscribe to laser
+  ros::Subscriber routeSub; // subscribe to laser
   ros::NodeHandle nh; // Nodehandler
   ros::Timer timeout; // Ros timer
 };
@@ -81,10 +90,13 @@ ptServer::ptServer(){
   velPub= nh.advertise<geometry_msgs::Twist>("stop_vel", 1); //eBrake using lidar
   pointPub= nh.advertise<geometry_msgs::PoseStamped>("/target_pts", 10);
   distToGoalPub= nh.advertise<std_msgs::Float64>("/tgoal", 10);
+  obstacleIndiPub= nh.advertise<std_msgs::Bool>("/obstacle", 1);
+
 
   poseSub= nh.subscribe("/robot_pose", 10, &ptServer::poseCallback, this);
   joySub = nh.subscribe("/joy", 10, &ptServer::joyCallback, this);
   scanSub = nh.subscribe("/scan", 10, &ptServer::scanCallback, this);
+  routeSub = nh.subscribe("/route", 10, &ptServer::routeCallback, this);
 
 
 
@@ -100,7 +112,7 @@ void ptServer::setParam()
     ros::spinOnce();
   }
   move=0;
-  nh.param<int>("route", route, 1);
+  //nh.param<int>("route", route, 1);
 }
 void ptServer::publishVel(geometry_msgs::Twist msg){
   velPub.publish(msg);
@@ -109,6 +121,12 @@ void ptServer::publishVel(geometry_msgs::Twist msg){
 void ptServer::poseCallback(const PoseConstPtr& msg) {
   pos = *msg;
 }
+
+void ptServer::routeCallback(const std_msgs::Int32::ConstPtr& msg) {
+  std_msgs::Int32 i=*msg;
+  route=i.data;
+}
+
 void ptServer::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
   // process and publish
   geometry_msgs::Twist twistMsg;
@@ -142,11 +160,13 @@ void ptServer::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan) {
       //std::cout<<std::endl;
       eBrake=1;
       publishVel(stop);
+
       break;
     }
     else
     {
       eBrake=0;
+
     }
     //ros::Duration(0.1).sleep();
   }
@@ -292,6 +312,8 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
       ros::Duration(3).sleep(); //Time delay of 3sec before resuming
       if (eBrake!=1)
       {
+      obstacleIndi.data=0;
+      obstacleIndiPub.publish(obstacleIndi);
       ac.sendGoal(goal);
       goalCanceled=0;
       ROS_INFO("[%d]Goal to x:%f y:%f resumed",wayptCounter,distance_x,distance_y);
@@ -299,6 +321,8 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
     }
     else if ((eBrake==1) && (goalCanceled==0))
     {
+      obstacleIndi.data=1;
+      obstacleIndiPub.publish(obstacleIndi);
       ac.cancelAllGoals();
       goalCanceled=1;
       ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
@@ -325,6 +349,8 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
         ros::Duration(3).sleep(); //Time delay of 3sec before resuming
         if (eBrake!=1)
         {
+        obstacleIndi.data=0;
+        obstacleIndiPub.publish(obstacleIndi);
         ac.sendGoal(goal);
         goalCanceled=0;
         ROS_INFO("[%d]Goal to x:%f y:%f resumed",wayptCounter,distance_x,distance_y);
@@ -332,6 +358,8 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
       }
       else if ((eBrake==1) && (goalCanceled==0))
       {
+        obstacleIndi.data=1;
+        obstacleIndiPub.publish(obstacleIndi);
         ac.cancelAllGoals();
         goalCanceled=1;
         ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
