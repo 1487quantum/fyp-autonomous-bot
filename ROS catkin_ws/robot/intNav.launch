@@ -49,28 +49,6 @@
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_cam" args="0.24 0 0.065 0 0 0 base_link axis/image_raw/compressed 100" />
 
 
-  <arg name="node_name"             value="velocity_smoother"/>
-    <arg name="nodelet_manager_name"  value="nodelet_manager"/>
-    <arg name="config_file"           value="$(find yocs_velocity_smoother)/param/standalone.yaml"/>
-    <arg name="raw_cmd_vel_topic"     value="raw_cmd_vel"/>
-    <arg name="smooth_cmd_vel_topic"  value="smooth_cmd_vel"/>
-    <arg name="robot_cmd_vel_topic"   value="robot_cmd_vel"/>
-    <arg name="odom_topic"            value="odom"/>
-
-    <!-- nodelet manager -->
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager"/>
-
-    <!-- velocity smoother -->
-    <include file="$(find yocs_velocity_smoother)/launch/velocity_smoother.launch">
-      <arg name="node_name"             value="$(arg node_name)"/>
-      <arg name="nodelet_manager_name"  value="$(arg nodelet_manager_name)"/>
-      <arg name="config_file"           value="$(arg config_file)"/>
-      <arg name="raw_cmd_vel_topic"     value="$(arg raw_cmd_vel_topic)"/>
-      <arg name="smooth_cmd_vel_topic"  value="$(arg smooth_cmd_vel_topic)"/>
-      <arg name="robot_cmd_vel_topic"   value="$(arg robot_cmd_vel_topic)"/>
-      <arg name="odom_topic"            value="$(arg odom_topic)"/>
-    </include>
-
 
 <!-- IMU -->
 <node pkg="mtig_driver" type="mtig_driver_node" name="mtig_driver" respawn="true" >
@@ -190,9 +168,33 @@
     <param name="recovery_behavior_enabled" type="bool" value="false" />
     <param name="clearing_rotation_allowed" type="bool" value="false" />
     <param name="planner_patience" type="double" value="60.0" />
-    <param name="controller_patience " type="double" value="60.0" />
+    <param name="controller_patience" type="double" value="60.0" />
+    <param name="controller_frequency" type="double" value="5.0" />
 
 </node>
+
+
+<arg name="node_name"             value="velocity_smoother"/>
+  <arg name="nodelet_manager_name"  value="nodelet_manager"/>
+  <arg name="config_file"           value="$(find yocs_velocity_smoother)/param/standalone.yaml"/>
+  <arg name="raw_cmd_vel_topic"     value="cmd_vel"/>
+  <arg name="smooth_cmd_vel_topic"  value="smooth_cmd_vel"/>
+  <arg name="robot_cmd_vel_topic"   value="cmd_velF"/>
+  <arg name="odom_topic"            value="odom"/>
+
+  <!-- nodelet manager -->
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)" args="manager"/>
+
+  <!-- velocity smoother -->
+  <include file="$(find yocs_velocity_smoother)/launch/velocity_smoother.launch">
+    <arg name="node_name"             value="$(arg node_name)"/>
+    <arg name="nodelet_manager_name"  value="$(arg nodelet_manager_name)"/>
+    <arg name="config_file"           value="$(arg config_file)"/>
+    <arg name="raw_cmd_vel_topic"     value="$(arg raw_cmd_vel_topic)"/>
+    <arg name="smooth_cmd_vel_topic"  value="$(arg smooth_cmd_vel_topic)"/>
+    <arg name="robot_cmd_vel_topic"   value="$(arg robot_cmd_vel_topic)"/>
+    <arg name="odom_topic"            value="$(arg odom_topic)"/>
+  </include>
 
 
 
