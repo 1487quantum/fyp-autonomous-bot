@@ -44,15 +44,17 @@ double currentX,currentY;
 double distToGoal,distToGoalCount;
 double goalCanceled;
 double distObstacle=10;
+double xd,xy;
+int wayptCounter,eBrake;
+
 std_msgs::Bool obstacleIndi;
 std::string const& fpath = "/home/fyp-trolley/catkin_ws/waypts.bag";  //Bag location
 
 sensor_msgs::LaserScan scanMsg;
 geometry_msgs::PoseStamped msg;
 geometry_msgs::PoseStamped pos; //current pos
+geometry_msgs::PoseStamped goalFinal;
 std_msgs::Int32 msg2;
-double xd,xy;
-int wayptCounter,eBrake;
 
 
 class ptServer{
@@ -60,6 +62,7 @@ public:
   ptServer();
   ros::Publisher distToGoalPub;
   ros::Publisher obstacleIndiPub;
+  ros::Publisher finalGoalPub;
   void countContents(std::string const& filename);
   void dumpContents(rosbag::Bag& b);
   void findBag(std::string const& filename);
@@ -70,8 +73,9 @@ public:
   void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
   void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan);
   void publishVel(geometry_msgs::Twist msg);
+  void timerCallback(const ros::TimerEvent& event);
   void setParam();
-  void pubTgoal();
+
 
 
 private:
@@ -84,6 +88,7 @@ private:
   ros::Subscriber routeSub; // subscribe to laser
   ros::NodeHandle nh; // Nodehandler
   ros::Timer timeout; // Ros timer
+  ros::Timer timerGoal;
 };
 
 ptServer::ptServer(){
@@ -91,14 +96,14 @@ ptServer::ptServer(){
   pointPub= nh.advertise<geometry_msgs::PoseStamped>("/target_pts", 10);
   distToGoalPub= nh.advertise<std_msgs::Float64>("/tgoal", 10);
   obstacleIndiPub= nh.advertise<std_msgs::Bool>("/obstacle", 1);
+  finalGoalPub=nh.advertise<geometry_msgs::PoseStamped>("/finalGoal", 10);
 
 
   poseSub= nh.subscribe("/robot_pose", 10, &ptServer::poseCallback, this);
   joySub = nh.subscribe("/joy", 10, &ptServer::joyCallback, this);
   scanSub = nh.subscribe("/scan", 10, &ptServer::scanCallback, this);
   routeSub = nh.subscribe("/route", 10, &ptServer::routeCallback, this);
-
-
+  timerGoal= nh.createTimer(ros::Duration(0.2), &ptServer::timerCallback,this);
 
 }
 
@@ -112,7 +117,6 @@ void ptServer::setParam()
     ros::spinOnce();
   }
   move=0;
-  //nh.param<int>("route", route, 1);
 }
 void ptServer::publishVel(geometry_msgs::Twist msg){
   velPub.publish(msg);
@@ -120,6 +124,19 @@ void ptServer::publishVel(geometry_msgs::Twist msg){
 
 void ptServer::poseCallback(const PoseConstPtr& msg) {
   pos = *msg;
+}
+
+void ptServer::timerCallback(const ros::TimerEvent& event)
+{
+  goalFinal.pose.position.x=coordX.at(6);
+  goalFinal.pose.position.y=coordY.at(6);
+  finalGoalPub.publish(goalFinal);
+  double xd=goalFinal.pose.position.x-pos.pose.position.x;
+  double yd=goalFinal.pose.position.y-pos.pose.position.y;
+  distToGoal=sqrt(xd*xd+yd*yd);
+  std_msgs::Float64 tgoal;
+  tgoal.data = distToGoal;
+  distToGoalPub.publish(tgoal);
 }
 
 void ptServer::routeCallback(const std_msgs::Int32::ConstPtr& msg) {
@@ -160,15 +177,12 @@ void ptServer::scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan) {
       //std::cout<<std::endl;
       eBrake=1;
       publishVel(stop);
-
       break;
     }
     else
     {
       eBrake=0;
-
     }
-    //ros::Duration(0.1).sleep();
   }
 }
 
@@ -224,7 +238,6 @@ void ptServer::dumpContents(rosbag::Bag& b) {
   }
   //ROS_INFO("%s", msg.data.c_str());
 
-
 }
 
 //Open bag location
@@ -234,17 +247,7 @@ void ptServer::findBag(std::string const& filename) {
   dumpContents(b);
   b.close();
 }
-void ptServer::pubTgoal()
-{
-  if (distToGoalCount==10000)
-  {
-  std_msgs::Float64 tgoal;
-  tgoal.data = distToGoal;
-  distToGoalPub.publish(tgoal);
-  distToGoalCount=0;
-  }
-  distToGoalCount++;
-}
+
 //Point to point navigation
 void ptServer::p2p(double distance_x,double distance_y,double angle_z,double angle_w){
   //tell the action client that we want to spin a thread by default
@@ -256,7 +259,7 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
   }
 
   move_base_msgs::MoveBaseGoal goal;
-  geometry_msgs::PoseStamped goalx;
+  geometry_msgs::PoseStamped goalPose;
 
   //we'll send a goal to the robot to move to the waypoints
   goal.target_pose.header.frame_id = "map"; // reference to map
@@ -268,12 +271,12 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
 
   //
 
-  goalx.header.frame_id = "map"; // reference to map
-  goalx.header.stamp = ros::Time::now();
+  goalPose.header.frame_id = "map"; // reference to map
+  goalPose.header.stamp = ros::Time::now();
 
   // set x,y coordinates
-  goalx.pose.position.x = distance_x;
-  goalx.pose.position.y = distance_y;
+  goalPose.pose.position.x = distance_x;
+  goalPose.pose.position.y = distance_y;
 
   // Set quaternion(angle)
   double radians = 0.0 * (M_PI/180);
@@ -290,26 +293,26 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
   goal.target_pose.pose.orientation.w = angle_w;
 
   // Set goal marker
-  goalx.pose.orientation.x = 0.0;
-  goalx.pose.orientation.y = 0.0;
-  goalx.pose.orientation.z = angle_z;
-  goalx.pose.orientation.w = angle_w;
+  goalPose.pose.orientation.x = 0.0;
+  goalPose.pose.orientation.y = 0.0;
+  goalPose.pose.orientation.z = angle_z;
+  goalPose.pose.orientation.w = angle_w;
 
   ROS_INFO("Sending next goal");
   ac.sendGoal(goal);
-  publishPoint(goalx);
+  publishPoint(goalPose);
   wayptCounter++;
 
-  double xd=goalx.pose.position.x-pos.pose.position.x;
-  double yd=goalx.pose.position.y-pos.pose.position.y;
-  double odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
+  double xd=goalPose.pose.position.x-pos.pose.position.x;
+  double yd=goalPose.pose.position.y-pos.pose.position.y;
+  double odz=abs(goalPose.pose.orientation.z-pos.pose.orientation.z);
   distToGoal=sqrt(xd*xd+yd*yd);
 
   while (distToGoal>0.5 || (odz>0.20))
   {
     if ((goalCanceled==1))
     {
-      ros::Duration(3).sleep(); //Time delay of 3sec before resuming
+      ros::Duration(2).sleep(); //Time delay of 3sec before resuming
       if (eBrake!=1)
       {
       obstacleIndi.data=0;
@@ -326,14 +329,12 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
       ac.cancelAllGoals();
       goalCanceled=1;
       ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
-      ROS_INFO("Please clear the obstruction and wait 3sec...");
+      ROS_INFO("Please clear the obstruction and wait 2sec...");
     }
     xd=(distance_x)-pos.pose.position.x;
     yd=(distance_y)-pos.pose.position.y;
-    odz=abs(goalx.pose.orientation.z-pos.pose.orientation.z);
+    odz=abs(goalPose.pose.orientation.z-pos.pose.orientation.z);
     distToGoal=sqrt(xd*xd+yd*yd);
-
-    pubTgoal();
     ros::spinOnce(); // refresh callback from robot_pose
   }
   if ((wayptCounter%10)!=0){
@@ -343,10 +344,9 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
   {
     while ((distToGoal!=0.0) && (odz!=0.0)) // Wait for complete alignment with target
     {
-      pubTgoal();
       if ((goalCanceled==1))
       {
-        ros::Duration(3).sleep(); //Time delay of 3sec before resuming
+        ros::Duration(2).sleep(); //Time delay of 3sec before resuming
         if (eBrake!=1)
         {
         obstacleIndi.data=0;
@@ -363,7 +363,7 @@ void ptServer::p2p(double distance_x,double distance_y,double angle_z,double ang
         ac.cancelAllGoals();
         goalCanceled=1;
         ROS_INFO("[%d]Goal to x:%f y:%f canceled due to an obstacle",wayptCounter,distance_x,distance_y);
-        ROS_INFO("Please clear the obstruction and wait 3sec...");
+        ROS_INFO("Please clear the obstruction and wait 2sec...");
       }
   }
 }
@@ -383,7 +383,6 @@ ROS_INFO("The base failed to move to %f,%f facing %f,%f ", distance_x,distance_y
 
 
 
-
 int main(int argc, char** argv){
 
   ros::init(argc, argv, "ptserver_node");
@@ -393,35 +392,36 @@ int main(int argc, char** argv){
   ps.findBag(fpath);
   ros::Duration(5).sleep();
   while(1){
-  ROS_INFO("Use 'rosparam set route x' to select route");
-  ROS_INFO("1=to door,2=to charging pt (Default:1)");
-  ROS_INFO("Press X to continue");
-  ps.setParam();
-  bus_stop=coordX.size(); // set bus_stop
-  ROS_INFO("Route %d selected",route);
-  if (route==1){
-    ROS_INFO("Route towards door selected");
-  for (double i=0.0; i<13.0; i+=1)
-  {
-    ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
-  }
+    wayptCounter=0;
+    ROS_INFO("Use 'rosparam set route x' to select route");
+    ROS_INFO("1=to door,2=to charging pt (Default:1)");
+    ROS_INFO("Press X to continue");
+    ps.setParam();
+    bus_stop=coordX.size(); // set bus_stop
+    ROS_INFO("Route %d selected",route);
+    if (route==1){
+      ROS_INFO("Route towards door selected");
+      for (double i=0.0; i<13.0; i+=1)
+      {
+        ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+      }
     }
-  else
-  {
-    ROS_INFO("Route towards charging pt selected");
-    for (double i=13.0; i<21.0; i+=1)
+    else
     {
-      wayptCounter=12;
-      ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+      ROS_INFO("Route towards charging pt selected");
+      for (double i=13.0; i<21.0; i+=1)
+      {
+        wayptCounter=12;
+        ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
+      }
     }
+    std_msgs::Float64 tgoal;
+    tgoal.data=0;
+    ps.distToGoalPub.publish(tgoal);
+    ROS_INFO("Docked at Bus Terminal");
+    ROS_INFO("This bus service has terminated");
+    ros::Duration(3).sleep();
   }
-  std_msgs::Float64 tgoal;
-  tgoal.data=0;
-  ps.distToGoalPub.publish(tgoal);
-  ROS_INFO("Docked at Bus Terminal");
-  ROS_INFO("This bus service has terminated");
-  ros::Duration(3).sleep();
-}
   ros::spin();
   return 0;
 }
