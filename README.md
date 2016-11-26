@@ -1,5 +1,5 @@
-# fyp-autonomous-bot
-This repository contains the codes & drivers used for the autonomous mobile robot project to perform autonomous navigation. The robot uses ROS Indigo, running on 64 bit Ubuntu 14.04.
+# jaguar-bot
+This repository contains the codes & drivers used for the autonomous mobile robot project (FYP) to perform autonomous navigation. The robot uses ROS Indigo, running on 64 bit Ubuntu 14.04.
 
 ##Dependancies
 We will also be installing the following ROS Packages system wide: [<i>$ sudo apt-get install .. </i>]
