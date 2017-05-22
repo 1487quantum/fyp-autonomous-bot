@@ -48,7 +48,6 @@
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_IMU" args="0.24 0.043 0.025 -1.57 0 0 base_link IMU 100" />
   <node pkg="tf" type="static_transform_publisher" name="base_link_to_cam" args="0.24 0 0.065 0 0 0 base_link axis/image_raw/compressed 100" />
 
-
 <!-- IMU -->
 <node pkg="mtig_driver" type="mtig_driver_node" name="mtig_driver" respawn="true" >
 		<!-- Error parameters /-->
@@ -87,10 +86,7 @@
 		<remap from="xsens/imu" to="imu_data"/>
 	</node>
 
-
-
 <!-- Combining IMU and encoder-->
-
   <node pkg="robot_pose_ekf" type="robot_pose_ekf" name="robot_pose_ekf">
     <param name="output_frame" value="odom"/>
     <param name="freq" value="30.0"/>
@@ -139,10 +135,7 @@
         <param name="transform_tolerance"       value="0.1"/>
         <param name="recovery_alpha_slow"       value="0.001"/>
         <param name="recovery_alpha_fast"       value="0.1"/>
-
 </node>
-
-
 
 <node pkg="twist_mux" type="twist_mux" name="twist_mux" output="screen">
   <remap from="cmd_vel_out" to="cmd_velF"/>
@@ -150,7 +143,6 @@
   <rosparam file="$(arg config_locks)"  command="load"/>
   <rosparam file="$(arg config_topics)" command="load"/>
 </node>
-
 
 <!-- Navigation -->
 <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
@@ -164,8 +156,6 @@
     <param name="clearing_rotation_allowed" type="bool" value="false" />
     <param name="planner_patience" type="double" value="60.0" />
     <param name="controller_patience " type="double" value="60.0" />
-
-
 </node>
 
 <!-- Axis Camera -->
@@ -189,6 +179,4 @@
     <remap from="joy" to="/joy" />
   </node>
 </group>
-
-
 </launch>
