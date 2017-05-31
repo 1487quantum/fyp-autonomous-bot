@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="ptserver" name="ptserver_node" type="ptserver_node" output="screen"/>
+  <param name="bus_stop1" value="2" />
+  <param name="bus_stop2" value="4" />
+</launch>
