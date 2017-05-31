@@ -1,7 +1,7 @@
 # jaguar-bot
-This repository contains the codes & drivers used for the autonomous mobile robot project to perform autonomous navigation. (used in our *Final Year Project*) The *conifer-dashboard* (web dashboard) is used to display the telemetry and relevant information of the robot via a local web server with *NodeJS*. (The repo is located over here: https://github.com/1487quantum/conifer-dashboard)
+This repository contains the codes & drivers used for the autonomous mobile robot project (FYP) to perform autonomous navigation. The *conifer-dashboard* (web dashboard) is used to display the telemetry and relevant information of the robot via a local web server with *NodeJS*. (The repo is located over here: https://github.com/1487quantum/conifer-dashboard)
 
-## System Tested
+## System
 - Ubuntu 14.04 LTS (64-bit)
 - ROS Indigo
 
@@ -32,6 +32,6 @@ An overview of the purpose of the various directories:
 - *diff_drive_controller*: Process /cmd_vel -> /joint_trajectory
 - *kangaroo_x2_driver*: Process /joint_trajectory -> /joint_state, controls the motor
 - *lms1xx_driver*: Lidar Driver (LMS111)
-- *robot_core*: Main control launch/config files here
+- *robot_core*: Main control launch/config files to run the robot is here
 - *axis_camera*: Axis Web camera
 
