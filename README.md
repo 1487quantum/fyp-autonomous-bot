@@ -1,21 +1,37 @@
 # jaguar-bot
-This repository contains the codes & drivers used for the autonomous mobile robot project (FYP) to perform autonomous navigation. The robot uses ROS Indigo, running on 64 bit Ubuntu 14.04.
+This repository contains the codes & drivers used for the autonomous mobile robot project to perform autonomous navigation. (used in our *Final Year Project*) The *conifer-dashboard* (web dashboard) is used to display the telemetry and relevant information of the robot via a local web server with *NodeJS*. (The repo is located over here: https://github.com/1487quantum/conifer-dashboard)
 
-## Dependancies
-We will also be installing the following ROS Packages system wide: [<i>$ sudo apt-get install .. </i>]
+## System Tested
+- Ubuntu 14.04 LTS (64-bit)
+- ROS Indigo
+
+## ROS Packages
+### System
+The following ROS packages are required to be installed system wide: 
 - Gmapping: ros-indigo-gmapping
 - Map server: ros-indigo-map_server
 - AMCL: ros-indigo-amcl
 - Move base: ros-indigo-move-base
 - Camera Info Manager (Py): ros-indigo-camera-info-manage-py
 
-## ROS Packages
-Below are the following packages that we will be using in this project:
-- Joystick Driver: joystick_drivers
-- Joystick Control: teleop_twist_joy
-- Motion Control: diff_drive_controller
-- Kangaroo Controller Driver: kangaroo_x2_driver
-- SICK LMS111 Lidar Driver: LMS1xx Driver
-- Main robot control: robot
-- Robot configurations: robot_config
-- Axis Camera: axis_camera
+To do so, simply run the following command, replacing *package_name* with the ones you need.
+```
+$ sudo apt-get install ros-indigo-[package_name]
+```
+
+### Local
+All the packages in this repo should be cloned & place into your workspace.
+```
+$ git clone https://github.com/1487quantum/jaguar-bot.git
+```
+
+## Directories
+An overview of the purpose of the various directories:
+- *joy*: Joystick driver
+- *teleop_twist_joy*: Process /joy -> /cmd_vel
+- *diff_drive_controller*: Process /cmd_vel -> /joint_trajectory
+- *kangaroo_x2_driver*: Process /joint_trajectory -> /joint_state, controls the motor
+- *lms1xx_driver*: Lidar Driver (LMS111)
+- *robot_core*: Main control launch/config files here
+- *axis_camera*: Axis Web camera
+
