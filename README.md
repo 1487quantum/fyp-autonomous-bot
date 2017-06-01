@@ -54,7 +54,7 @@ An overview of the respective directories:
     ```
     <param name="port" value="/dev/ttyUSB1" />
     ```
-    If the IMU is used & the following error occurs, try swapping the USB ports of the IMU and the kangaroo node instead.
+   - If the IMU is used & the following error occurs, try swapping the USB ports of the IMU and the kangaroo node instead.
 
 ## References
 - http://nomoreterminals.blogspot.sg/2013/12/how-to-set-up-logitech-f310-on-ubuntu.html
