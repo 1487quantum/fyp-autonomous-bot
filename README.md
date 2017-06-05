@@ -35,6 +35,19 @@ An overview of the respective directories:
 - **robot_core**: Main control launch/config files to run the robot is here
 - **axis_camera**: Axis Web camera
 
+## Remote viewing/control of GUI
+_x11vnc_ could be used to remotely view the computer's GUI.
+```
+$ sudo apt-get install x11vnc
+```
+To run it, take note of the IP address of the host computer.
+```
+$ x11vnc
+```
+VNC softwares like [VNCViewer for Chrome](https://chrome.google.com/webstore/detail/vnc%C2%AE-viewer-for-google-ch/iabmpiboiopbgfabjmgeedhcmjenhbla) or [TightVNC](https://sourceforge.net/projects/vnc-tight/) could be used to view the GUI.
+> **Note**: Rviz requires a display to be connected to the computer, so even though VNC is able to display the GUI, Rviz will **only WORK with a CONNECTED display**. (As for now)
+
+
 ## Troubleshooting
 - **The joystick is detected by the computer (checked via _lsusb_) , but why is it not recognised as a port in _/dev/input_ as _js0_?**
 
