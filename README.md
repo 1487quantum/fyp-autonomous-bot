@@ -26,14 +26,28 @@ $ git clone https://github.com/1487quantum/jaguar-bot.git
 ```
 
 ## Directories
-An overview of the respective directories:
+An overview of the respective packages/directories:
 - **joy**: Joystick driver (Logitech)
 - **teleop_twist_joy**: Process /joy -> /cmd_vel
 - **diff_drive_controller**: Process /cmd_vel -> /joint_trajectory
-- **kangaroo_x2_driver**: Process /joint_trajectory -> /joint_state, controls the motor
+- **kangaroo_driver**: Process /joint_trajectory -> /joint_state, controls the motor
 - **lms1xx_driver**: Lidar Driver (LMS111)
-- **robot_core**: Main control launch/config files to run the robot is here
 - **axis_camera**: Axis Web camera
+- **hector_slam**: Hector SLAM for mapping
+- **image_common**: For image transport
+- **robot_pose_ekf**: To estimate 3D pose of robot (odom & imu data)
+- **robot_pose_publisher**: To get the current pose of the robot
+- **mtig_driver**: Xsens IMU driver
+- **ros_bridge_suite**: Link ROS data over the web
+- **twist_mux**: A cmd_vel multiplexer with priority
+- **teb_local_planner**: A move_base plugin for path planning
+- **yocs_velocity_smoother**: Reduces sudden jerks and stops while controlling the robot (cmd_vel)
+
+### Custom
+- **robot_core**: Main control launch/config files to run the robot is here
+- **robot_odom_subs**: Listens to odometry
+- **pointrecorder**: To record waypoints via rosbag
+- **ptserver**: To playback the recorded waypoints
 
 ## Remote viewing/control of GUI
 _x11vnc_ could be used to remotely view the computer's GUI.
