@@ -2,10 +2,6 @@
 #include "nav_msgs/Odometry.h"
 
 /**
- * This tutorial demonstrates simple receipt of position and speed of the Evarobot over the ROS system.
- */
-
-/**
  * Callback function executes when new topic data comes.
  * Task of the callback function is to print data to screen.
  */
