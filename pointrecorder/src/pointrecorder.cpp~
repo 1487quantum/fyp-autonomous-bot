@@ -1,81 +1,100 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/String.h>
+#include <rosbag/bag.h>
 
- class JoyTeleop
- {
-	public:
-		JoyTeleop();
+typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 
-	private: // declare all the required functions and variables
-		void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
-		void updateParameters();
-		void timerCallback(const ros::TimerEvent& e);
-		void publishZeroMessage();
-    		void publishPoint(); // function to publish point
+//Variables
+rosbag::Bag bag;
+bool ft;  //First time
+double wayptCounter;
 
-		double linearScale, angularScale;
-		int Button, linearAxis, angularAxis;
-		bool canMove;
-		ros::Subscriber joySub; // subscribe to joystick
-    		ros::Subscriber poseSub; // subscribe to robot_pose
-    		ros::Publisher pointPub; // publish robot_pose
-		ros::NodeHandle nh; // Nodehandler
-		ros::Timer timeout; // Ros timer
+class ptRecorder
+{
+
+  public:
+  ptRecorder();
+
+  private: // declare all the required functions and variables
+  void joyCallback(const sensor_msgs::Joy::ConstPtr &msg);
+  void poseCallback(const PoseConstPtr& msg);
+  void updateParameters();
+  void timerCallback(const ros::TimerEvent& e);
+  void publishZeroMessage();
+  void publishPoint(); // function to publish point
+
+  double linearScale, angularScale;
+  int Button,Button2,Button3;
+  ros::Subscriber joySub; // subscribe to joystick
+  ros::Subscriber poseSub; // subscribe to robot_pose
+  ros::Publisher pointPub; // publish robot_pose
+  ros::NodeHandle nh; // Nodehandler
+  ros::Timer timeout; // Ros timer
+
+  //Pose
+  geometry_msgs::PoseStamped pos;
 };
 
-JoyTeleop::JoyTeleop() { // constructor for class JoyTeleop
-	joySub = nh.subscribe("/joy", 10, &JoyTeleop::joyCallback, this);
-  poseSub = nh.subscribe("/robot_pose", 10, &JoyTeleop::joyCallback, this);
-	twistPub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
-  pointPub= nh.advertise<geometry_msgs::Twist>("/point", 10);
+ptRecorder::ptRecorder() { // constructor for class JoyTeleop
+  joySub = nh.subscribe("/joy", 10, &ptRecorder::joyCallback, this);
+  poseSub = nh.subscribe("/robot_pose", 10, &ptRecorder::poseCallback, this);
 
-	updateParameters();
+  pointPub= nh.advertise<geometry_msgs::PoseStamped>("/pt", 10);
+
+  updateParameters();
 }
 
-void JoyTeleop::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
-	// process and publish
-	geometry_msgs::Twist twistMsg;
+void ptRecorder::joyCallback(const sensor_msgs::Joy::ConstPtr &msg) {
+  // process and publish
+  geometry_msgs::Twist twistMsg;
 
-	// check button, change variable button to switch to another button
-	bool switchActive = (msg->buttons[Button] == 1);
-
-	if (switchActive) {		
-    	publishPoint();	
+  // check button, change variable button to switch to another button
+  bool switchActive = (msg->buttons[Button] == 1);
+  if (switchActive) {
+    //Run following code if button is pressed for the 1st time
+    if(ft){
+      ft=0;
+      bag.open("/home/fyp-trolley/catkin_ws/waypts.bag", rosbag::bagmode::Write);   //ToDo: Open bag only if button is pressed
+    }
+    publishPoint();
+  }
 }
 
-void JoyTeleop::updateParameters() {
-	// update the parameters for processing the joystick messages
-	if (!nh.getParam("linear_scale", linearScale))
-		linearScale = 0.25;
-
-	if (!nh.getParam("angular_scale", angularScale))
-		angularScale = 0.5;
-
-	if (!nh.getParam("button", Button))
-		Button = 1;
-
-	if (!nh.getParam("linear_axis", linearAxis))
-		linearAxis = 1;
-
-	if (!nh.getParam("angular_axis", angularAxis))
-		angularAxis = 0;
+void ptRecorder::poseCallback(const PoseConstPtr& msg) {
+  pos = *msg;
 }
 
+void ptRecorder::updateParameters() {
+  // update the parameters for processing the joystick messages
+  if (!nh.getParam("button", Button))
+    Button = 5;   //Button RB
+  /* Future use
+  if (!nh.getParam("button2", Button2))
+  Button2 = 2;   //Button X
+  if (!nh.getParam("button3", Button3))
+  Button3 = 4;   //Button LB
+  */
+}
 
+void ptRecorder::publishPoint() {
+  pointPub.publish(pos);
+  bag.write("point",  ros::Time::now(), pos);   //Save points in rosbag
+  ROS_INFO("Waypt: %f",wayptCounter);
+  ROS_INFO_STREAM("Waypoint: " << pos);   //Display in console
+  wayptCounter++;
 
-void JoyTeleop::publishPoint() {
-	geometry_msgs::Twist msg;
-	msg.linear.x = 1;
-	msg.angular.z = 1;
-	pointPub.publish(msg);
 }
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "pointRecorder_node");
-	JoyTeleop joy_teleop_node;
-
-	ros::spin();
-
-	return 0;
+  ros::init(argc, argv, "pointRecorder_node");
+  ft = 1;
+  ptRecorder joy_teleop_node;
+  ros::spin();
+  //Close bag
+  bag.close();
+  return 0;
 }

@@ -1,6 +1,6 @@
 <launch>
   <arg name="camera_name" default="axis" />
-  <arg name="hostname" default="192.168.1.13" />
+  <arg name="hostname" default="192.168.2.105" />
   <arg name="enable_theora" default="0" />
   <arg name="enable_ptz" default="0" />
   <arg name="enable_ptz_teleop" default="0" />
@@ -11,7 +11,7 @@
     <param name="height" value="480" />
     <node pkg="axis_camera" type="axis.py" name="axis" />
     <node pkg="axis_camera" type="axis_ptz.py" name="axis_ptz" if="$(arg enable_ptz)" />
-    
+
     <node pkg="image_transport" type="republish" name="republish"
           args="compressed" if="$(arg enable_theora)">
       <remap from="in" to="image_raw" />

@@ -9,10 +9,13 @@
  * \date April 3, 2014
  */
 
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+geometry_msgs::PoseWithCovarianceStamped pose_stamped1;
+int start=0;
 
 /*!
  * Creates and runs the robot_pose_publisher node.
@@ -33,6 +36,7 @@ int main(int argc, char ** argv)
   double publish_frequency;
   bool is_stamped;
   ros::Publisher p_pub;
+  ros::Publisher p_pub2;
 
   nh_priv.param<std::string>("map_frame",map_frame,"/map");
   nh_priv.param<std::string>("base_frame",base_frame,"/base_link");
@@ -44,18 +48,38 @@ int main(int argc, char ** argv)
   else
     p_pub = nh.advertise<geometry_msgs::Pose>("robot_pose", 1);
 
+ if(start==0)
+    p_pub2 = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose", 1);
+
+
   // create the listener
   tf::TransformListener listener;
   listener.waitForTransform(map_frame, base_frame, ros::Time(), ros::Duration(1.0));
 
   ros::Rate rate(publish_frequency);
+      pose_stamped1.header.frame_id = map_frame;
+      pose_stamped1.header.stamp = ros::Time::now();
+
+      pose_stamped1.pose.pose.orientation.x = 0.0;
+      pose_stamped1.pose.pose.orientation.y = 0.0;
+      pose_stamped1.pose.pose.orientation.z = 0.7016;
+      pose_stamped1.pose.pose.orientation.w = 0.7125;
+
+      pose_stamped1.pose.pose.position.x = -0.62;
+      pose_stamped1.pose.pose.position.y = -0.52;
+      pose_stamped1.pose.pose.position.z = 0.0;
+
+      if(start==0)
+        p_pub2.publish(pose_stamped1);
+
+
   while (nh.ok())
   {
     tf::StampedTransform transform;
     try
     {
       listener.lookupTransform(map_frame, base_frame, ros::Time(0), transform);
-
+	     start=1;
       // construct a pose message
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header.frame_id = map_frame;
@@ -71,9 +95,9 @@ int main(int argc, char ** argv)
       pose_stamped.pose.position.z = transform.getOrigin().getZ();
 
       if(is_stamped)
-        p_pub.publish(pose_stamped);
-      else
-        p_pub.publish(pose_stamped.pose);
+      p_pub.publish(pose_stamped);
+    else
+      p_pub.publish(pose_stamped.pose);
     }
     catch (tf::TransformException &ex)
     {

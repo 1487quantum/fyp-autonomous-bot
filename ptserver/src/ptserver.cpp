@@ -38,7 +38,8 @@ int btnB=2,btnX=0,btnRT=7,btnLB=4,btnLT=6;
 #include <iostream>
 
 // navigation
-int count,bus_stop,route,move;
+int count,bus_stop,move;
+int route=1;
 vec_d coordX,coordY, angW,angZ;
 double currentX,currentY;
 double distToGoal,distToGoalCount;
@@ -128,8 +129,10 @@ void ptServer::poseCallback(const PoseConstPtr& msg) {
 
 void ptServer::timerCallback(const ros::TimerEvent& event)
 {
+  if (route==1){
   goalFinal.pose.position.x=coordX.at(6);
   goalFinal.pose.position.y=coordY.at(6);
+  }
   finalGoalPub.publish(goalFinal);
   double xd=goalFinal.pose.position.x-pos.pose.position.x;
   double yd=goalFinal.pose.position.y-pos.pose.position.y;
@@ -401,7 +404,7 @@ int main(int argc, char** argv){
     ROS_INFO("Route %d selected",route);
     if (route==1){
       ROS_INFO("Route towards door selected");
-      for (double i=0.0; i<13.0; i+=1)
+      for (double i=0.0; i<21.0; i+=1)
       {
         ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals
       }
@@ -409,7 +412,8 @@ int main(int argc, char** argv){
     else
     {
       ROS_INFO("Route towards charging pt selected");
-      for (double i=13.0; i<21.0; i+=1)
+      //for (double i=13.0; i<21.0; i+=1)
+      for (double i=0.0; i<21.0; i+=1)
       {
         wayptCounter=12;
         ps.p2p(coordX.at(i),coordY.at(i),angZ.at(i),angW.at(i)); // send goals

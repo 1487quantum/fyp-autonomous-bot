@@ -11,6 +11,7 @@ typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseConstPtr;
 //Variables
 rosbag::Bag bag;
 bool ft;  //First time
+double wayptCounter;
 
 class ptRecorder
 {
@@ -70,7 +71,7 @@ void ptRecorder::poseCallback(const PoseConstPtr& msg) {
 void ptRecorder::updateParameters() {
   // update the parameters for processing the joystick messages
   if (!nh.getParam("button", Button))
-  Button = 5;   //Button RB
+    Button = 5;   //Button RB
   /* Future use
   if (!nh.getParam("button2", Button2))
   Button2 = 2;   //Button X
@@ -82,7 +83,9 @@ void ptRecorder::updateParameters() {
 void ptRecorder::publishPoint() {
   pointPub.publish(pos);
   bag.write("point",  ros::Time::now(), pos);   //Save points in rosbag
+  ROS_INFO("Waypt: %f",wayptCounter);
   ROS_INFO_STREAM("Waypoint: " << pos);   //Display in console
+  wayptCounter++;
 
 }
 

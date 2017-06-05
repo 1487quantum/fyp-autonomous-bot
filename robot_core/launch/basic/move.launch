@@ -18,7 +18,7 @@
     <remap from="cmd_velF" to="cmd_vel" />
   </node>
   <node pkg="kangaroo_driver" type="kangaroo_driver_node" name="kangaroo_driver_node">
-    <param name="port" value="/dev/ttyUSB0" />
+    <param name="port" value="/dev/ttyUSB1" />
 </node>
   <node pkg="diff_drive_controller" type="base_pose_node" name="base_pose_node"/>
 

@@ -4,7 +4,7 @@
          users as gscam is available as a nodelet. --> 
 
     <arg name="camera" default="axis" />
-    <arg name="hostname" default="192.168.1.12" />
+    <arg name="hostname" default="192.168.2.105" />
     <arg name="delay" default="45.0" />
     <arg name="fps" default="30" />
     <arg name="compression" default="10" />
